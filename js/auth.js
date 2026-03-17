@@ -2,7 +2,7 @@
 const AUTH_KEY = "equilibrium_auth_v1";
 const AUTH_USER_KEY = "equilibrium_auth_user_v1";
 
-const REPO_BASE = "";
+const REPO_BASE = "/Equilibrium_adm";
 
 const USERS = [
   { id: "1", label: "Admin", password: "3639" },
@@ -51,7 +51,7 @@ function doLogin({ userId, password }){
 
 function logout(){
   clearAuth();
-  location.href = REPO_BASE + "";
+  location.href = REPO_BASE + "/Equilibrium_adm";
 }
 
 function guardAuth(){
