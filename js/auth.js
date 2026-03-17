@@ -6,7 +6,7 @@ const REPO_BASE = "/Equilibrium_adm/";
 
 const USERS = [
   { id: "1", label: "Admin", password: "3639" },
-  { id: "2", label: "Natalia", password: "0000" },
+  { id: "2", label: "Usuário 2", password: "0000" },
   { id: "3", label: "Usuário 3", password: "3333" },
   { id: "4", label: "Usuário 4", password: "4444" },
 ];
@@ -61,7 +61,7 @@ function guardAuth(){
 
   if(isAuthed()) return true;
 
-  location.href = REPO_BASE + "login.html";
+  location.href = REPO_BASE + "/Equilibrium_adm/login.html";
   return false;
 }
 
