@@ -30,7 +30,7 @@
     <div id="erro" class="error"></div>
   </div>
 
-  <script src="js/auth.js"></script>
+  <script src="/Equilibrium_adm/js/auth.js"></script>
   <script>
     const sel = document.getElementById("usuarioSelect");
     const senha = document.getElementById("senha");
@@ -43,7 +43,7 @@
       erro.textContent = "";
       const res = doLogin({ userId: sel.value, password: senha.value });
       if (!res.ok) { erro.textContent = res.message || "Erro no login."; return; }
-      location.href = "/";
+      location.href = "/Equilibrium_adm/";
     });
   </script>
 
