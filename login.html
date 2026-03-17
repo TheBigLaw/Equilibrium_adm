@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <base href="/">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login | Equilibrium</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" type="image/png" href="/logo.png" />
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <img class="logo" src="/logo2.png" alt="Logo" />
+    <p class="muted">Acesso restrito</p>
+
+    <div class="login-form">
+      <div>
+        <label for="usuarioSelect">Usuário</label>
+        <select id="usuarioSelect"></select>
+      </div>
+
+      <div>
+        <label for="senha">Senha</label>
+        <input type="text" id="senha" placeholder="Digite sua senha!" />
+      </div>
+
+      <button class="btn-primary" id="btnEntrar">Entrar</button>
+    </div>
+
+    <div id="erro" class="error"></div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    const sel = document.getElementById("usuarioSelect");
+    const senha = document.getElementById("senha");
+    const erro = document.getElementById("erro");
+    const btn = document.getElementById("btnEntrar");
+
+    hydrateLoginUsers(sel);
+
+    btn.addEventListener("click", () => {
+      erro.textContent = "";
+      const res = doLogin({ userId: sel.value, password: senha.value });
+      if (!res.ok) { erro.textContent = res.message || "Erro no login."; return; }
+      location.href = "/";
+    });
+  </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // tenta pegar o campo de senha (ajuste os seletores se necessário)
+  const pass =
+    document.querySelector('#password') ||
+    document.querySelector('#senha') ||
+    document.querySelector('input[type="password"]');
+
+  // tenta pegar o botão de login (ajuste se tiver id específico)
+  const btn =
+    document.querySelector('#loginBtn') ||
+    document.querySelector('button[type="submit"]') ||
+    document.querySelector('button') ||
+    document.querySelector('input[type="submit"]');
+
+  if (!pass) return;
+
+  pass.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (btn) btn.click(); // dispara exatamente o mesmo fluxo do clique
+    }
+  });
+});
+</script>
+  
+</body>
+</html>
