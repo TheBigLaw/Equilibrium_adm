@@ -1,0 +1,246 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* --- Tema Verde --- */
+  --bg: #e8f5e9;            /* Fundo principal bem claro */
+  --card: #ffffff;          /* Fundo branco dos cartões */
+  --primary: #43a047;       /* Verde vibrante para botões e interações */
+  --primaryDark: #1b5e20;   /* Verde escuro para o cabeçalho e títulos */
+  --text: #1a2b1e;          /* Texto principal escuro (levemente esverdeado) */
+  --muted: #617a65;         /* Texto secundário */
+  --border: #c8e6c9;        /* Cor das bordas das tabelas e inputs */
+  --shadow: 0 14px 34px rgba(0,0,0,.08);
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* =========================================
+   CABEÇALHO
+   ========================================= */
+.app-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 104px;
+  background: var(--primaryDark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  box-shadow: 0 10px 22px rgba(27, 94, 32, 0.2);
+}
+
+.app-header .logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  pointer-events: none;
+}
+
+.app-header .logo {
+  height: 56px;
+  object-fit: contain;
+  display: block;
+}
+
+.back-btn, .exit-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.back-btn { left: 22px; }
+.exit-btn { right: 22px; }
+.back-btn:hover, .exit-btn:hover { background: rgba(255,255,255,.18); }
+
+/* =========================================
+   LAYOUT E CARDS
+   ========================================= */
+.main {
+  max-width: 980px;
+  margin: 132px auto 64px;
+  padding: 0 18px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 26px;
+  margin: 18px auto;
+}
+
+h2 { margin: 0; font-weight: 700; letter-spacing: -0.2px; color: var(--primaryDark); font-size: 18px; }
+.muted { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+/* =========================================
+   FORMULÁRIOS (DADOS DO PACIENTE)
+   ========================================= */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  align-items: end;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primaryDark);
+  margin-bottom: 6px;
+}
+
+input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 400;
+  background: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+input:focus {
+  border-color: rgba(67, 160, 71, 0.6);
+  box-shadow: 0 0 0 4px rgba(67, 160, 71, 0.1);
+}
+
+/* =========================================
+   SISTEMA DE ABAS (TABS)
+   ========================================= */
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 12px 12px 0 0;
+  transition: all 0.2s ease;
+  position: relative;
+  bottom: -2px; /* Faz sobrepor a borda inferior perfeitamente */
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  background: rgba(67, 160, 71, 0.04);
+  color: var(--primaryDark);
+}
+
+.tab-btn.active {
+  color: var(--primaryDark);
+  border-bottom: 2px solid var(--primary);
+  background: rgba(67, 160, 71, 0.08);
+}
+
+.tab-content { display: none; animation: fadeIn 0.3s ease; }
+.tab-content.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   TABELAS E CHECKLIST
+   ========================================= */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.table th, .table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 8px;
+  text-align: left;
+}
+
+.table th {
+  color: var(--primaryDark);
+  font-weight: 700;
+  background: rgba(67, 160, 71, 0.06);
+}
+
+.col-selecao { width: 70px; text-align: center !important; }
+.col-data { width: 180px; }
+
+.check-teste {
+  transform: scale(1.4);
+  cursor: pointer;
+  accent-color: var(--primary); /* Caixa de seleção ficará verde */
+}
+
+.input-data {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 100%;
+}
+
+.input-data:disabled {
+  background: var(--bg);
+  color: transparent;
+  border-color: var(--border);
+}
+
+/* =========================================
+   BOTÕES DE AÇÃO
+   ========================================= */
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  justify-content: flex-end;
+}
+
+button {
+  padding: 12px 20px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
