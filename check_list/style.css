@@ -6,7 +6,7 @@
   --card: #ffffff;          /* Fundo branco dos cartões */
   --primary: #43a047;       /* Verde vibrante para botões e interações */
   --primaryDark: #1b5e20;   /* Verde escuro para o cabeçalho e títulos */
-  --text: #1a2b1e;          /* Texto principal escuro (levemente esverdeado) */
+  --text: #1a2b1e;          /* Texto principal escuro */
   --muted: #617a65;         /* Texto secundário */
   --border: #c8e6c9;        /* Cor das bordas das tabelas e inputs */
   --shadow: 0 14px 34px rgba(0,0,0,.08);
@@ -147,7 +147,7 @@ input:focus {
   border-radius: 12px 12px 0 0;
   transition: all 0.2s ease;
   position: relative;
-  bottom: -2px; /* Faz sobrepor a borda inferior perfeitamente */
+  bottom: -2px; 
   border-bottom: 2px solid transparent;
 }
 
@@ -198,7 +198,7 @@ input:focus {
 .check-teste {
   transform: scale(1.4);
   cursor: pointer;
-  accent-color: var(--primary); /* Caixa de seleção ficará verde */
+  accent-color: var(--primary);
 }
 
 .input-data {
@@ -225,7 +225,9 @@ input:focus {
   justify-content: flex-end;
 }
 
-button {
+button.btn-primary {
+  background: var(--primary);
+  color: #fff;
   padding: 12px 20px;
   border-radius: 14px;
   border: none;
@@ -235,12 +237,44 @@ button {
   transition: all 0.2s ease;
 }
 
-.btn-primary {
-  background: var(--primary);
-  color: #fff;
-}
-
-.btn-primary:hover {
+button.btn-primary:hover {
   filter: brightness(0.95);
   transform: translateY(-1px);
+}
+
+/* =========================================
+   CONFIGURAÇÕES DE IMPRESSÃO (PDF)
+   ========================================= */
+@media print {
+  @page { size: A4 portrait; margin: 15mm; }
+  
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  body { background: #fff !important; }
+  .main { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+  .card { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+
+  .app-header, .tabs, .actions, .muted { 
+    display: none !important; 
+  }
+
+  .tab-content { display: none !important; }
+  .tab-content.active { display: block !important; }
+
+  input[type="text"], input[type="number"] {
+    border: 1px solid #ccc !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  .input-data:disabled {
+    border: none !important;
+    border-bottom: 1px solid #999 !important;
+    border-radius: 0 !important;
+  }
+
+  table tr { 
+    break-inside: avoid; 
+    page-break-inside: avoid; 
+  }
 }
