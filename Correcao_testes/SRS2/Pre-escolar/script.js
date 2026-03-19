@@ -598,7 +598,8 @@ function finalizarEEnviar() {
 
   window.scrollTo(0, 0);
 
-  setTimeout(() => {
+setTimeout(() => {
+    // Trancamos a largura da câmara em 794px
     const opt = {
       margin: 0,
       filename: 'resultado.pdf',
@@ -607,7 +608,9 @@ function finalizarEEnviar() {
         scale: 2, 
         useCORS: true, 
         scrollX: 0, 
-        scrollY: 0 
+        scrollY: 0,
+        windowWidth: 794, // O segredo para o texto não ficar gigante
+        width: 794        // O segredo para não cortar a lateral
       }, 
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
