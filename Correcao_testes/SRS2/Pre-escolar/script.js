@@ -12,7 +12,7 @@ const $ = (sel) => document.querySelector(sel);
 
 function setSubtitle(msg){
   const sub = $("#subtitle");
-  if(sub) sub.textContent = msg;
+  if(sub) sub.textContent = msg; // TRAVÃO DE SEGURANÇA
 }
 
 async function carregarRegras(){
@@ -48,7 +48,6 @@ function renderItens(){
     return;
   }
 
-  // TRAVÕES DE SEGURANÇA: Só atualiza se o elemento existir no HTML
   const pillForm = $("#pillForm");
   if(pillForm) pillForm.textContent = form.label || FORM_KEY;
 
@@ -177,7 +176,7 @@ function classificarT(t){
 
 function renderTabelaResultados(brutos, tscores){
   const tbody = $("#tblResultados tbody");
-  if(!tbody) return; // Segurança: Se não existir a tabela (modo paciente), ignora.
+  if(!tbody) return; 
   
   const form = getForm();
   tbody.innerHTML = "";
@@ -259,7 +258,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderItens();
     atualizarContagemRespondidos();
 
-    // Segurança: Só ativa o botão de recalcular se ele existir na página
     const btnRecalc = $("#btnRecalc");
     if(btnRecalc) btnRecalc.addEventListener("click", () => calcularEExibir());
 
@@ -303,7 +301,7 @@ const SCALE_DESCRIPTIONS = {
   "Percepção Social": "A Subescala de Intervenção de Percepção Social mede a capacidade de reconhecer pistas sociais e lidar com os aspectos da percepção do comportamento social recíproco.",
   "Cognição Social": "A Subescala de Intervenção Cognição Social refere-se à capacidade de interpretar as pistas sociais após reconhecê-las e lidar com o aspecto cognitivo-interpretativo do comportamento social recíproco.",
   "Comunicação Social": "A Subescala de Intervenção Comunicação Social mede a capacidade de comunicação expressiva, lidando com os aspectos motores do comportamento social recíproco. Esta categoria representa os aspectos \"robotizados\" do comportamento.",
-  "Motivação Social": "A Subescala de Intervenção Motivação Social refere-se ao grau em que as pessoas geralmente são motivadas a se engajar em comportamento sócio interpessoal. Elementos de ansiedade social, inibição e orientação empática estão incluídos entre esses itens.",
+  "Motivação Social": "A Subescala de Intervenção Motivação Social refere-se ao grau em que as pessoas généralement são motivadas a se engajar em comportamento sócio interpessoal. Elementos de ansiedade social, inibição e orientação empática estão incluídos entre esses itens.",
   "Padrões Restritos e Repetitivos": "Padrões Restritos e Repetitivos encontra-se tanto nas subescalas de intervenção quanto nas escalas compatíveis ao DSM-5. Esta categoria mede a presença de comportamentos estereotípicos característicos de TEA e áreas de interesse muito limitadas.",
   "Comunicação e Interação Social": "Comunicação e Interação Social é uma das escalas compatíveis ao DSM-5 e é uma medida global que se relaciona tanto à capacidade de reconhecer e interpretar sinais sociais quanto à capacidade de motivação para o contato interpessoal social expressivo. Ela avalia a reciprocidade socioemocional, comportamentos comunicativos não verbais usados para interação social e capacidade de desenvolver, manter e compreender relacionamentos."
 };
@@ -405,7 +403,7 @@ function svgProfileChart(rows){
 function svgBell(t){
   const W=500, H=160;
   const tMin=20, tMax=80;
-  const xPad=20;
+  const xPad=20, yPad=20;
   const plotW = W - xPad*2;
   const baseY = H - 30;
 
@@ -429,10 +427,14 @@ function svgBell(t){
   <svg class="rep-bell" viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
     <path d="${d}" fill="#e8fbfa" />
+    
     <rect x="${xOfT(40)}" y="${baseY-110}" width="${xOfT(60)-xOfT(40)}" height="110" fill="#d0f0ee" opacity="0.4"/>
+
     <line x1="${xt}" y1="${baseY-110}" x2="${xt}" y2="${baseY}" stroke="#e3001b" stroke-width="2.5"/>
     <circle cx="${xt}" cy="${baseY-110}" r="5" fill="#e3001b"/>
+
     <line x1="${xPad}" y1="${baseY}" x2="${xPad+plotW}" y2="${baseY}" stroke="#111" stroke-width="1.5"/>
+
     ${[20,30,40,50,60,70,80].map(v => `
       <text x="${xOfT(v)}" y="${baseY+20}" text-anchor="middle" font-size="14" font-family="Arial" fill="#111">${v}</text>
     `).join("")}
@@ -574,28 +576,31 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
-  // 1. Cortina roxa de privacidade
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A formatar e enviar o relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
 
+  // Esconde o site sem apagar a altura do body
   const headers = document.querySelectorAll('header');
   const main = document.querySelector('main');
   headers.forEach(h => h.style.display = 'none');
   if(main) main.style.display = 'none';
 
-  // 2. A CORREÇÃO DE ESCALA: Trancamos o relatório na largura exata de 794 pixels.
-  // Colocamos um padding de 40px para criar a margem branca e "box-sizing" para a margem não somar ao tamanho total.
   const elemento = document.getElementById("report");
-  elemento.style.cssText = "display: block !important; margin: 0 auto !important; background: #fff !important; width: 794px !important; padding: 40px !important; box-sizing: border-box !important;";
+  
+  // SOLUÇÃO PARA O PDF CORTADO E TEXTO GIGANTE: 
+  // Tranca a largura do relatório matematicamente em 794px (largura exata A4)
+  elemento.style.cssText = "display: block !important; margin: 0 !important; padding: 0 !important; width: 794px !important; background: #fff !important; overflow: visible !important;";
+  
+  // Garante que o papel não responde aos 210mm do CSS antigo na hora da foto
+  const repPage = elemento.querySelector('.rep-page');
+  if(repPage) {
+    repPage.style.cssText = "width: 794px !important; margin: 0 !important; box-sizing: border-box !important;";
+  }
   
   const estiloCores = document.createElement('style');
   estiloCores.innerHTML = `
-    /* Anula as medidas antigas do CSS para obedecer apenas aos 794px que definimos no Javascript */
-    #report .rep-page { width: 100% !important; min-height: auto !important; padding: 0 !important; }
-    
-    /* Cores das tabelas */
     #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #report .rep-mini-table tr { background-color: #f9fbfb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #report .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
@@ -605,7 +610,6 @@ function finalizarEEnviar() {
 
   window.scrollTo(0, 0);
 
-  // 3. CAPTURA DA FOTO
   setTimeout(() => {
     const opt = {
       margin: 0,
@@ -616,7 +620,7 @@ function finalizarEEnviar() {
         useCORS: true, 
         scrollX: 0, 
         scrollY: 0,
-        windowWidth: 794 // Diz à câmara que o monitor virtual tem sempre 794px (bloqueia o zoom)
+        windowWidth: 794 // Obriga a câmara a reconhecer a página com 794px, impedindo o corte e o zoom
       }, 
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
@@ -627,7 +631,6 @@ function finalizarEEnviar() {
       const inputPaciente = document.getElementById("paciente");
       const nomePaciente = (inputPaciente ? inputPaciente.value : "") || "Paciente_Sem_Nome";
 
-      // 4. Envio para o Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
