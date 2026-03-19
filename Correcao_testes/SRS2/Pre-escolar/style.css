@@ -407,14 +407,15 @@ td{
 .right{ text-align:right; }
 .nowrap{ white-space:nowrap; }
 
-/* ===== RELATÓRIO CLÍNICO (A4) ===== */
+/* ===== RELATÓRIO CLÍNICO (A4 em Pixels Exatos) ===== */
 .rep-page{
-  width: 210mm;
-  min-height: 297mm;
-  padding: 12mm 12mm 16mm;
+  width: 794px;         /* Largura exata A4 */
+  min-height: 1123px;   /* Altura exata A4 */
+  padding: 45px 45px 60px; /* Margens internas elegantes */
   background:#fff;
   color:#111;
   font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
 }
 
 .rep-head{
