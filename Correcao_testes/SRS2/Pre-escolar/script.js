@@ -621,56 +621,60 @@ function finalizarEEnviar() {
   
   const btn = document.getElementById("btnEnviar");
   if (btn) {
-    btn.textContent = "A preparar o documento... aguarde";
+    btn.textContent = "A gerar PDF seguro...";
     btn.style.opacity = "0.7";
     btn.disabled = true;
   }
 
+  // Sobe a página para o topo
   window.scrollTo(0, 0);
 
-  // 2. Levanta a "Cortina de Carregamento" para tapar a visão do paciente
-  const cortina = document.createElement("div");
-  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
-  cortina.innerHTML = "<span>⏳ A encriptar e formatar as respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
-  document.body.appendChild(cortina);
+  // 2. A TÁTICA INFALÍVEL: "O QUE VOCÊ VÊ É O QUE É FOTOGRAFADO"
+  // Vamos esconder todo o site (perguntas, botões e menus)
+  const appHeader = document.querySelector('.app-header');
+  const headerNoPrint = document.querySelector('header.no-print');
+  const mainContent = document.querySelector('main');
+
+  if (appHeader) appHeader.style.display = 'none';
+  if (headerNoPrint) headerNoPrint.style.display = 'none';
+  if (mainContent) mainContent.style.display = 'none';
+
+  // 3. Mostramos APENAS o relatório perfeitamente centrado como uma folha A4 no ecrã
+  const elemento = document.getElementById("report");
+  document.body.style.background = "#eef4ff"; // Fundo da tela
+  
+  // Forçamos a largura exata do papel A4 (800px) e removemos qualquer sobreposição
+  elemento.style.cssText = "display: block !important; width: 800px !important; margin: 20px auto !important; padding: 40px !important; background: #fff !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;";
 
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
-  const elemento = document.getElementById("report");
 
-  // 3. O SEGREDO DO A4: Criamos um clone e forçamos a largura exata de uma folha A4 (794px)
-  const clone = elemento.cloneNode(true);
-  
-  // Posicionamos o clone no canto superior esquerdo (0,0), debaixo da cortina, com 794px!
-  clone.style.cssText = "display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 794px !important; padding: 20px 30px !important; background: #fff !important; z-index: 9990 !important; margin: 0 !important; box-sizing: border-box !important;";
-  
-  document.body.appendChild(clone);
+  // 4. Adicionamos um pequeno aviso no canto inferior (que não atrapalha a fotografia)
+  const aviso = document.createElement("div");
+  aviso.style.cssText = "position: fixed; bottom: 20px; right: 20px; background: #4c1d95; color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-family: sans-serif;";
+  aviso.innerHTML = "⏳ A encriptar e enviar documento...";
+  document.body.appendChild(aviso);
 
-  // Atraso de 0.8s para a câmara focar no clone A4
+  // 5. Esperamos 1 segundo. A câmara agora não tem como falhar, pois o relatório é a única coisa visível!
   setTimeout(() => {
     
-    // Configurações exatas para A4
     const opt = {
-      margin:       [10, 0, 10, 0], // Margem em cima e em baixo (as laterais já são controladas pelo padding do clone)
+      margin:       10, // Margem de segurança branca
       filename:     'resultado.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { 
         scale: 2, 
         useCORS: true, 
         scrollY: 0,
-        scrollX: 0
-        // Retirámos o windowWidth para não conflitar com a largura de 794px do clone
+        ignoreElements: (node) => node === aviso // Diz à câmara para ignorar o aviso do canto
       }, 
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(clone).outputPdf('datauristring').then(function(pdfBase64) {
+    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
-      // A FOTO FOI TIRADA! Destruímos o clone
-      document.body.removeChild(clone);
-
       const base64Limpo = pdfBase64.split(',')[1];
 
-      // 4. Envia o PDF para o Google Drive
+      // 6. Envia para o Google Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({
@@ -680,30 +684,43 @@ function finalizarEEnviar() {
       })
       .then(response => response.json())
       .then(data => {
-        // Remove a cortina
-        document.body.removeChild(cortina); 
+        // Remove o aviso do canto
+        if (aviso.parentNode) document.body.removeChild(aviso);
 
         if (data.status === "sucesso") {
-          document.querySelector("main").innerHTML = `
-            <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
-              <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
-              <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-              <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
-              <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+          // Destrói o relatório do ecrã e mostra o SUCESSO final
+          elemento.style.display = "none";
+          document.body.innerHTML = `
+            <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+              <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; width: 100%;">
+                <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+                <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
+                <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
+                <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+              </div>
             </div>
           `;
           window.scrollTo(0, 0); 
         } else {
           alert("Ocorreu um erro ao enviar: " + data.mensagem);
-          if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+          restaurarTela();
         }
       })
       .catch(erro => {
-        document.body.removeChild(cortina);
+        if (aviso.parentNode) document.body.removeChild(aviso);
         alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
-        if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+        restaurarTela();
       });
     });
 
-  }, 800);
+  }, 1000);
+
+  // Função para voltar atrás caso a internet falhe
+  function restaurarTela() {
+    if (appHeader) appHeader.style.display = '';
+    if (headerNoPrint) headerNoPrint.style.display = '';
+    if (mainContent) mainContent.style.display = '';
+    elemento.style.display = 'none';
+    if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+  }
 }
