@@ -588,10 +588,9 @@ function finalizarEEnviar() {
 
   const elemento = document.getElementById("report");
   
-  // O GRANDE TRUQUE DO ZOOM OUT (Aumentado para 1920px - Padrão Full HD):
-  // A câmara fotografa uma área gigante, o que obriga o PDF a encolher as letras de forma drástica!
-  // O padding também foi aumentado para as margens brancas da folha respirarem bem.
-  elemento.style.cssText = "display: block !important; margin: 0 auto !important; padding: 80px 120px !important; background: #fff !important; width: 1920px !important; box-sizing: border-box !important;";
+  // O GRANDE TRUQUE DO ZOOM OUT (Aumentado para 2400px):
+  // A câmara agora fotografa uma área monstruosa. O PDF será obrigado a encolher as letras de forma muito agressiva para caber na folha!
+  elemento.style.cssText = "display: block !important; margin: 0 auto !important; padding: 100px 150px !important; background: #fff !important; width: 2400px !important; box-sizing: border-box !important;";
   
   // Limpa restrições antigas do CSS
   const repPage = elemento.querySelector('.rep-page');
@@ -620,7 +619,7 @@ function finalizarEEnviar() {
         useCORS: true, 
         scrollX: 0, 
         scrollY: 0,
-        windowWidth: 1920 // O segredo final: Sincronizado para garantir o encolhimento máximo das letras
+        windowWidth: 2400 // Sincronizado para garantir a máxima redução possível na conversão
       }, 
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
