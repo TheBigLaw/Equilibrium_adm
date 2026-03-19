@@ -615,13 +615,9 @@ function instalarBotaoEnviar() {
 }
 
 function finalizarEEnviar() {
-  // 1. Garante que os cálculos foram feitos e o relatório foi montado
   const result = calcularEExibir();
-  if(result){
-    preencherRelatorioSRS2(result);
-  }
+  if(result){ preencherRelatorioSRS2(result); }
   
-  // 2. Muda visualmente o botão
   const btn = document.getElementById("btnEnviar");
   if (btn) {
     btn.textContent = "A preparar o envio... aguarde";
@@ -629,7 +625,10 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
-  // 3. Cria uma "Cortina de Carregamento" para tapar a visão do paciente
+  // 1. Sobe a página ao topo para a "câmara" não se perder
+  window.scrollTo(0, 0);
+
+  // 2. A SUA cortina de carregamento original
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A encriptar e enviar as suas respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
@@ -638,61 +637,59 @@ function finalizarEEnviar() {
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
   const elemento = document.getElementById("report");
 
-  // 4. TRUQUE: Torna o relatório visível (atrás da cortina) para a "câmara" conseguir tirar a foto
-  elemento.style.setProperty("display", "block", "important");
-  elemento.style.background = "#fff";
+  // 3. O SEU TRUQUE: O relatório fica no ecrã (atrás da cortina).
+  // A ÚNICA DIFERENÇA: Adicionamos margin: 0 e width: 794px para o PDF não cortar a lateral esquerda.
+  elemento.style.cssText = "display: block !important; background: #fff !important; margin: 0 !important; padding: 20px !important; width: 794px !important;";
 
-  // 5. Configurações de alta qualidade para o PDF
-  const opt = {
-    margin:       0,
-    filename:     'resultado.pdf',
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true, windowWidth: 1200 }, // Mantém o layout de computador intacto
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  // 6. Gera o PDF
-  html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+  // 4. Esperamos 1 segundo só para a página ter tempo de desenhar o SVG
+  setTimeout(() => {
     
-    // Esconde o relatório novamente
-    elemento.style.setProperty("display", "none", "important");
+    // Configurações: Retirei o windowWidth: 1200 que causava o zoom gigante
+    const opt = {
+      margin:       0,
+      filename:     'resultado.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 }, 
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
 
-    // Prepara os dados
-    const base64Limpo = pdfBase64.split(',')[1];
+    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+      
+      // Esconde o relatório novamente
+      elemento.style.cssText = "display: none !important;";
 
-    // 7. Envia para o Google Drive
-    fetch(URL_DO_GOOGLE_SCRIPT, {
-      method: "POST",
-      body: JSON.stringify({
-        pdf: base64Limpo,
-        nome: nomePaciente
+      const base64Limpo = pdfBase64.split(',')[1];
+
+      // Envia para o Drive
+      fetch(URL_DO_GOOGLE_SCRIPT, {
+        method: "POST",
+        body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
       })
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Remove a cortina de carregamento
-      document.body.removeChild(cortina); 
+      .then(response => response.json())
+      .then(data => {
+        document.body.removeChild(cortina); 
 
-      if (data.status === "sucesso") {
-        // SUCESSO! Mostra a mensagem de agradecimento
-        document.querySelector("main").innerHTML = `
-          <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
-            <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
-            <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-            <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
-            <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
-          </div>
-        `;
-        window.scrollTo(0, 0); 
-      } else {
-        alert("Ocorreu um erro ao enviar: " + data.mensagem);
+        if (data.status === "sucesso") {
+          document.querySelector("main").innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
+              <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+              <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
+              <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
+              <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+            </div>
+          `;
+          window.scrollTo(0, 0); 
+        } else {
+          alert("Ocorreu um erro ao enviar: " + data.mensagem);
+          if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+        }
+      })
+      .catch(erro => {
+        document.body.removeChild(cortina);
+        alert("Erro de ligação. Por favor, verifique a sua internet.");
         if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
-      }
-    })
-    .catch(erro => {
-      document.body.removeChild(cortina);
-      alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
-      if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+      });
     });
-  });
+
+  }, 1000); // 1 segundo de tempo para os gráficos
 }
