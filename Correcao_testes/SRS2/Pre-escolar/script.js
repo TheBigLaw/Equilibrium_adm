@@ -602,14 +602,29 @@ for(const r of rows){
   document.getElementById("repInterpretation").innerHTML = buildInterpretationText();
 }
 
+// ==========================================
+// 1. FUNÇÃO PARA ATIVAR O BOTÃO DE ENVIAR
+// ==========================================
+function instalarBotaoEnviar() {
+  const btnEnviar = document.getElementById("btnEnviar");
+  if (btnEnviar) {
+    btnEnviar.addEventListener("click", () => {
+      finalizarEEnviar();
+    });
+  }
+}
+
+// ==========================================
+// 2. FUNÇÃO QUE GERA O PDF E ENVIA
+// ==========================================
 function finalizarEEnviar() {
-  // 1. Garante que os cálculos foram feitos e o relatório foi montado
+  // Garante que os cálculos foram feitos e o relatório foi montado
   const result = calcularEExibir();
   if(result){
     preencherRelatorioSRS2(result);
   }
   
-  // 2. Muda visualmente o botão
+  // Muda visualmente o botão
   const btn = document.getElementById("btnEnviar");
   if (btn) {
     btn.textContent = "A preparar o documento... aguarde";
@@ -620,7 +635,7 @@ function finalizarEEnviar() {
   // Sobe a página para o topo
   window.scrollTo(0, 0);
 
-  // 3. Cria a "Cortina de Carregamento"
+  // Cria a "Cortina de Carregamento"
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A encriptar e formatar as respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
@@ -629,11 +644,11 @@ function finalizarEEnviar() {
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
   const elemento = document.getElementById("report");
 
-  // 4. O GRANDE TRUQUE: Arranca o relatório do fluxo do site e cola-o na coordenada (0,0) do ecrã
+  // O GRANDE TRUQUE: Arranca o relatório do fluxo do site e cola-o na coordenada (0,0) do ecrã
   // Usamos padding em vez de margem para criar o espaço branco seguro em volta do PDF
   elemento.style.cssText = "display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 850px !important; padding: 40px !important; background: #fff !important; z-index: 9990 !important; margin: 0 !important;";
 
-  // 5. Atraso ligeiramente maior (0.8s) para garantir que o navegador desenha o layout forçado
+  // Atraso ligeiramente maior (0.8s) para garantir que o navegador desenha o layout forçado
   setTimeout(() => {
     
     // Configurações de alta qualidade da câmara
@@ -652,7 +667,7 @@ function finalizarEEnviar() {
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // 6. Gera o PDF
+    // Gera o PDF
     html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
       // Esconde o relatório e limpa toda a formatação forçada que aplicámos
@@ -661,7 +676,7 @@ function finalizarEEnviar() {
       // Prepara os dados
       const base64Limpo = pdfBase64.split(',')[1];
 
-      // 7. Envia para o Google Drive
+      // Envia para o Google Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({
@@ -697,5 +712,5 @@ function finalizarEEnviar() {
       });
     });
 
-  }, 800); // 800 milissegundos para garantir que a "tinta seca" antes da foto
+  }, 800); 
 }
