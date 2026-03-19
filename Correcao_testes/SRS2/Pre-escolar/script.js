@@ -588,12 +588,11 @@ function finalizarEEnviar() {
 
   const elemento = document.getElementById("report");
   
-  // O GRANDE TRUQUE DO ZOOM OUT:
-  // Aumentamos a largura do relatório para 1200px. A câmara vai tirar uma foto "larga".
-  // Quando o jsPDF for tentar colocar 1200px num papel A4, ele vai ser obrigado a ENCOLHER a escala de tudo!
-  elemento.style.cssText = "display: block !important; margin: 0 auto !important; padding: 40px 60px !important; background: #fff !important; width: 1200px !important; box-sizing: border-box !important;";
+  // O GRANDE TRUQUE DO ZOOM OUT (Aumentado para 1500px):
+  // Agora a câmara vai fotografar uma tela enorme, o que obriga o PDF a encolher ainda mais as letras!
+  elemento.style.cssText = "display: block !important; margin: 0 auto !important; padding: 60px 80px !important; background: #fff !important; width: 1500px !important; box-sizing: border-box !important;";
   
-  // Limpa restrições antigas do CSS para o truque funcionar
+  // Limpa restrições antigas do CSS
   const repPage = elemento.querySelector('.rep-page');
   if(repPage) {
     repPage.style.cssText = "width: 100% !important; min-height: auto !important; padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;";
@@ -612,7 +611,7 @@ function finalizarEEnviar() {
 
   setTimeout(() => {
     const opt = {
-      margin: [10, 0, 10, 0], // Dá 10mm de margem em cima e em baixo para a quebra de página ficar bonita
+      margin: [15, 0, 15, 0], // Margem no topo e no fundo do PDF
       filename: 'resultado.pdf',
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { 
@@ -620,7 +619,7 @@ function finalizarEEnviar() {
         useCORS: true, 
         scrollX: 0, 
         scrollY: 0,
-        windowWidth: 1200 // Obriga a câmara a ver a página com 1200px (acionando o encolhimento)
+        windowWidth: 1500 // Sincronizado com a largura do relatório para forçar o encolhimento
       }, 
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
