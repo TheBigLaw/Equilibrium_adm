@@ -617,82 +617,82 @@ function instalarBotaoEnviar() {
 function finalizarEEnviar() {
   // 1. Garante que os cálculos foram feitos e o relatório foi montado
   const result = calcularEExibir();
-  if(result){
-    preencherRelatorioSRS2(result);
-  }
+  if(result){ preencherRelatorioSRS2(result); }
   
   // 2. Muda visualmente o botão
   const btn = document.getElementById("btnEnviar");
   if (btn) {
-    btn.textContent = "A preparar o envio... aguarde";
+    btn.textContent = "A preparar o documento... aguarde";
     btn.style.opacity = "0.7";
     btn.disabled = true;
   }
 
-  // 3. Cria uma "Cortina de Carregamento" para tapar a visão do paciente
+  // 3. Cria a cortina de carregamento na tela inteira
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
-  cortina.innerHTML = "<span>⏳ A encriptar e enviar as suas respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
+  cortina.innerHTML = "<span>⏳ A encriptar e formatar as respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
 
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
   const elemento = document.getElementById("report");
 
-  // 4. TRUQUE: Torna o relatório visível (atrás da cortina) para a "câmara" conseguir tirar a foto
-  elemento.style.setProperty("display", "block", "important");
-  elemento.style.background = "#fff";
+  // O GRANDE TRUQUE: Prendemos o relatório no topo esquerdo (position: fixed) 
+  // e forçamos a largura exata do papel A4 (800px) por baixo da cortina (z-index 9990)
+  elemento.style.cssText = "display: block !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 800px !important; padding: 25px !important; background: #fff !important; z-index: 9990 !important;";
 
-  // 5. Configurações de alta qualidade para o PDF
-  const opt = {
-    margin:       0,
-    filename:     'resultado.pdf',
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true, windowWidth: 1200 }, // Mantém o layout de computador intacto
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  // 6. Gera o PDF
-  html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+  // Damos 0.8s para o navegador desenhar tudo com as novas larguras
+  setTimeout(() => {
     
-    // Esconde o relatório novamente
-    elemento.style.setProperty("display", "none", "important");
+    // Configuração com margem interna de segurança
+    const opt = {
+      margin:       10, 
+      filename:     'resultado.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        windowWidth: 800 // OBRIGATÓRIO: Avisa a câmara que a tela tem exatos 800px
+      }, 
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
 
-    // Prepara os dados
-    const base64Limpo = pdfBase64.split(',')[1];
+    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+      
+      // A foto foi tirada! Escondemos o relatório e limpamos as forçadas de CSS
+      elemento.style.cssText = "display: none !important;";
 
-    // 7. Envia para o Google Drive
-    fetch(URL_DO_GOOGLE_SCRIPT, {
-      method: "POST",
-      body: JSON.stringify({
-        pdf: base64Limpo,
-        nome: nomePaciente
+      const base64Limpo = pdfBase64.split(',')[1];
+
+      // Envia para o Google Drive
+      fetch(URL_DO_GOOGLE_SCRIPT, {
+        method: "POST",
+        body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
       })
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Remove a cortina de carregamento
-      document.body.removeChild(cortina); 
+      .then(response => response.json())
+      .then(data => {
+        document.body.removeChild(cortina); 
 
-      if (data.status === "sucesso") {
-        // SUCESSO! Mostra a mensagem de agradecimento
-        document.querySelector("main").innerHTML = `
-          <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
-            <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
-            <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-            <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
-            <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
-          </div>
-        `;
-        window.scrollTo(0, 0); 
-      } else {
-        alert("Ocorreu um erro ao enviar: " + data.mensagem);
-        if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
-      }
-    })
-    .catch(erro => {
-      document.body.removeChild(cortina);
-      alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
-      if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+        if (data.status === "sucesso") {
+          document.querySelector("main").innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
+              <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+              <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
+              <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
+              <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+            </div>
+          `;
+          window.scrollTo(0, 0); 
+        } else {
+          alert("Ocorreu um erro ao enviar: " + data.mensagem);
+          if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
+        }
+      })
+      .catch(erro => {
+        document.body.removeChild(cortina);
+        alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
+        if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
+      });
     });
-  });
+
+  }, 800); 
 }
