@@ -281,17 +281,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderItens();
     atualizarContagemRespondidos();
 
-    $("#btnRecalc").addEventListener("click", () => {
+$("#btnRecalc").addEventListener("click", () => {
       calcularEExibir();
     });
 
     $("#btnClear").addEventListener("click", () => {
       limparTudo();
     });
-    instalarBotaoEnviar(); // <-- COLE ESTA LINHA AQUI
-
-  }catch(err){
-    instalarPrintComRelatorio();
+    
+    // Inicia a escuta do botão de enviar
+    instalarBotaoEnviar();
 
   }catch(err){
     console.error(err);
