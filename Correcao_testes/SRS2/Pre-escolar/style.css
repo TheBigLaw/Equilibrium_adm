@@ -137,22 +137,13 @@ main{
   align-items: start;
 }
 
-/* Desktop: esquerda grande + sidebar fixa */
-@media (min-width: 1100px){
-  .grid{
-    grid-template-columns: 1fr 360px;
+/* Desktop: Formulário centralizado sem a barra lateral */
+@media (min-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr; /* Apenas uma coluna */
+    max-width: 900px; /* Largura máxima para ficar elegante no PC */
+    margin: 0 auto; /* O segredo para centralizar perfeitamente */
   }
-
-  .grid > aside.card{
-    position: sticky;
-    top: calc(78px + 14px + 70px);
-    height: calc(100vh - (78px + 14px + 70px) - 18px);
-    overflow: auto;
-  }
-}
-
-@media (min-width: 980px) and (max-width: 1099px){
-  .grid{ grid-template-columns: 1fr 320px; }
 }
 
 /* ===== Cards (branco + borda lilás + sombra roxa) ===== */
