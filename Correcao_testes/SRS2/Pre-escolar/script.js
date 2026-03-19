@@ -627,6 +627,9 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
+  // O SEGREDO 1: Sobe a página para o topo para a foto não sair em branco nem cortada
+  window.scrollTo(0, 0);
+
   // 3. Cria uma "Cortina de Carregamento" para tapar a visão do paciente
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
@@ -640,57 +643,68 @@ function finalizarEEnviar() {
   elemento.style.setProperty("display", "block", "important");
   elemento.style.background = "#fff";
 
-  // 5. Configurações de alta qualidade para o PDF
-  const opt = {
-    margin:       0,
-    filename:     'resultado.pdf',
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true, windowWidth: 1200 }, // Mantém o layout de computador intacto
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  // 6. Gera o PDF
-  html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+  // O SEGREDO 2: Atraso de meio segundo (500ms) para os gráficos SVG terem tempo de renderizar
+  setTimeout(() => {
     
-    // Esconde o relatório novamente
-    elemento.style.setProperty("display", "none", "important");
+    // 5. Configurações de alta qualidade com layout de PC forçado (evita o corte lateral)
+    const opt = {
+      margin:       15, // Adiciona a margem branca para não ficar colado nas bordas
+      filename:     'resultado.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        scrollY: 0, 
+        scrollX: 0, 
+        windowWidth: 1024 // Força o enquadramento perfeito
+      }, 
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
 
-    // Prepara os dados
-    const base64Limpo = pdfBase64.split(',')[1];
+    // 6. Gera o PDF
+    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+      
+      // Esconde o relatório novamente
+      elemento.style.setProperty("display", "none", "important");
 
-    // 7. Envia para o Google Drive
-    fetch(URL_DO_GOOGLE_SCRIPT, {
-      method: "POST",
-      body: JSON.stringify({
-        pdf: base64Limpo,
-        nome: nomePaciente
+      // Prepara os dados
+      const base64Limpo = pdfBase64.split(',')[1];
+
+      // 7. Envia para o Google Drive
+      fetch(URL_DO_GOOGLE_SCRIPT, {
+        method: "POST",
+        body: JSON.stringify({
+          pdf: base64Limpo,
+          nome: nomePaciente
+        })
       })
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Remove a cortina de carregamento
-      document.body.removeChild(cortina); 
+      .then(response => response.json())
+      .then(data => {
+        // Remove a cortina de carregamento
+        document.body.removeChild(cortina); 
 
-      if (data.status === "sucesso") {
-        // SUCESSO! Mostra a mensagem de agradecimento
-        document.querySelector("main").innerHTML = `
-          <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
-            <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
-            <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-            <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
-            <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
-          </div>
-        `;
-        window.scrollTo(0, 0); 
-      } else {
-        alert("Ocorreu um erro ao enviar: " + data.mensagem);
+        if (data.status === "sucesso") {
+          // SUCESSO! Mostra a mensagem de agradecimento
+          document.querySelector("main").innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
+              <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+              <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
+              <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
+              <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+            </div>
+          `;
+          window.scrollTo(0, 0); 
+        } else {
+          alert("Ocorreu um erro ao enviar: " + data.mensagem);
+          if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+        }
+      })
+      .catch(erro => {
+        document.body.removeChild(cortina);
+        alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
         if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
-      }
-    })
-    .catch(erro => {
-      document.body.removeChild(cortina);
-      alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
-      if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+      });
     });
-  });
+
+  }, 500); // <-- Fim do bloco de atraso (setTimeout)
 }
