@@ -615,10 +615,9 @@ function instalarBotaoEnviar() {
 }
 
 function finalizarEEnviar() {
-  // 1. Garante que os cálculos foram feitos e o relatório foi montado
   const result = calcularEExibir();
   if(result){ preencherRelatorioSRS2(result); }
-  
+
   const btn = document.getElementById("btnEnviar");
   if (btn) {
     btn.textContent = "A gerar PDF seguro...";
@@ -626,101 +625,74 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
-  // Sobe a página para o topo
   window.scrollTo(0, 0);
 
-  // 2. A TÁTICA INFALÍVEL: "O QUE VOCÊ VÊ É O QUE É FOTOGRAFADO"
-  // Vamos esconder todo o site (perguntas, botões e menus)
-  const appHeader = document.querySelector('.app-header');
-  const headerNoPrint = document.querySelector('header.no-print');
-  const mainContent = document.querySelector('main');
+  // 1. A Cortina (O paciente só vê isto)
+  const cortina = document.createElement("div");
+  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
+  cortina.innerHTML = "<span>⏳ A encriptar e enviar o seu relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche a página.</span>";
+  document.body.appendChild(cortina);
 
-  if (appHeader) appHeader.style.display = 'none';
-  if (headerNoPrint) headerNoPrint.style.display = 'none';
-  if (mainContent) mainContent.style.display = 'none';
-
-  // 3. Mostramos APENAS o relatório perfeitamente centrado como uma folha A4 no ecrã
-  const elemento = document.getElementById("report");
-  document.body.style.background = "#eef4ff"; // Fundo da tela
-  
-  // Forçamos a largura exata do papel A4 (800px) e removemos qualquer sobreposição
-  elemento.style.cssText = "display: block !important; width: 800px !important; margin: 20px auto !important; padding: 40px !important; background: #fff !important; box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;";
+  // 2. O TRUQUE DE MESTRE: Ativamos a "Falsa Impressão" (escondida atrás da cortina)
+  document.body.classList.add("modo-pdf");
 
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
+  const elemento = document.getElementById("report");
 
-  // 4. Adicionamos um pequeno aviso no canto inferior (que não atrapalha a fotografia)
-  const aviso = document.createElement("div");
-  aviso.style.cssText = "position: fixed; bottom: 20px; right: 20px; background: #4c1d95; color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.2); font-family: sans-serif;";
-  aviso.innerHTML = "⏳ A encriptar e enviar documento...";
-  document.body.appendChild(aviso);
-
-  // 5. Esperamos 1 segundo. A câmara agora não tem como falhar, pois o relatório é a única coisa visível!
+  // 3. Meio segundo para o navegador pintar as tabelas no tamanho perfeito
   setTimeout(() => {
     
     const opt = {
-      margin:       10, // Margem de segurança branca
+      margin:       0,
       filename:     'resultado.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { 
         scale: 2, 
         useCORS: true, 
         scrollY: 0,
-        ignoreElements: (node) => node === aviso // Diz à câmara para ignorar o aviso do canto
+        windowWidth: 800 // Trava a câmara na largura exata do A4
       }, 
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
+      // 4. A FOTO FOI TIRADA! Desativamos a Falsa Impressão e o site volta ao normal invisivelmente
+      document.body.classList.remove("modo-pdf");
+
       const base64Limpo = pdfBase64.split(',')[1];
 
-      // 6. Envia para o Google Drive
+      // 5. Envia para o Google Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
-        body: JSON.stringify({
-          pdf: base64Limpo,
-          nome: nomePaciente
-        })
+        body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
       })
       .then(response => response.json())
       .then(data => {
-        // Remove o aviso do canto
-        if (aviso.parentNode) document.body.removeChild(aviso);
-
         if (data.status === "sucesso") {
-          // Destrói o relatório do ecrã e mostra o SUCESSO final
-          elemento.style.display = "none";
+          // Destrói o site e mostra a mensagem de sucesso
           document.body.innerHTML = `
             <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
               <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; width: 100%;">
                 <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
                 <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-                <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
+                <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança.</p>
                 <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
               </div>
             </div>
           `;
-          window.scrollTo(0, 0); 
         } else {
+          document.body.removeChild(cortina);
           alert("Ocorreu um erro ao enviar: " + data.mensagem);
-          restaurarTela();
+          if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
         }
       })
       .catch(erro => {
-        if (aviso.parentNode) document.body.removeChild(aviso);
-        alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
-        restaurarTela();
+        document.body.removeChild(cortina);
+        alert("Erro de ligação. Por favor, verifique a internet e tente novamente.");
+        if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
       });
     });
 
-  }, 1000);
-
-  // Função para voltar atrás caso a internet falhe
-  function restaurarTela() {
-    if (appHeader) appHeader.style.display = '';
-    if (headerNoPrint) headerNoPrint.style.display = '';
-    if (mainContent) mainContent.style.display = '';
-    elemento.style.display = 'none';
-    if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
-  }
+  }, 500);
 }
