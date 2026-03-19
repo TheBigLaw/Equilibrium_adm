@@ -5,24 +5,17 @@ const URL_DO_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwBUzlAykh
  * TROQUE SOMENTE ISSO EM CADA PASTA
  */
 const FORM_KEY = "pre_escolar";
-// Exemplos:
-// "pre_escolar"
-// "idade_escolar_feminino"
-// "idade_escolar_masculino"
-// "adulto_autorrelato"
-// "adulto_heterorrelato"
 
 let SRS2_RULES = null;
 
 const $ = (sel) => document.querySelector(sel);
 
 function setSubtitle(msg){
-  $("#subtitle").textContent = msg;
+  const sub = $("#subtitle");
+  if(sub) sub.textContent = msg;
 }
 
 async function carregarRegras(){
-  // Esta página está em /SRS2/<pasta>/index.html
-  // então o JSON fica em /SRS2/data/srs2_rules.json -> "../data/srs2_rules.json"
   const res = await fetch("../data/srs2_rules.json", { cache: "no-store" });
   if(!res.ok){
     throw new Error("Não foi possível carregar ../data/srs2_rules.json");
@@ -47,6 +40,7 @@ function escapeHtml(str){
 function renderItens(){
   const form = getForm();
   const container = $("#itens");
+  if(!container) return;
   container.innerHTML = "";
 
   if(!form){
@@ -54,8 +48,12 @@ function renderItens(){
     return;
   }
 
-  $("#pillForm").textContent = form.label || FORM_KEY;
-  $("#hintForm").textContent = `Itens: ${form.items.length} • Escalas: ${form.scales.length}`;
+  // TRAVÕES DE SEGURANÇA: Só atualiza se o elemento existir no HTML
+  const pillForm = $("#pillForm");
+  if(pillForm) pillForm.textContent = form.label || FORM_KEY;
+
+  const hintForm = $("#hintForm");
+  if(hintForm) hintForm.textContent = `Itens: ${form.items.length} • Escalas: ${form.scales.length}`;
 
   const labels = form.answer_labels || {
     1: "Nunca",
@@ -106,10 +104,11 @@ function atualizarContagemRespondidos(){
     const resp = document.querySelector(`input[name="i${CSS.escape(String(item.id))}"]:checked`);
     if(resp) answered++;
   }
-  $("#pillAnswered").textContent = String(answered);
+  
+  const pillAnswered = $("#pillAnswered");
+  if(pillAnswered) pillAnswered.textContent = String(answered);
 }
 
-// Excel: normal -> resp-1 ; reverso -> 4-resp
 function pontosItem(item, resp14){
   const r = parseInt(resp14, 10);
   if(Number.isNaN(r)) return null;
@@ -136,24 +135,17 @@ function coletarRespostas(){
 
 function calcularBrutos(respostasMap){
   const form = getForm();
-
   const brutos = {};
-  for(const scale of form.scales){
-    brutos[scale.key] = 0;
-  }
+  for(const scale of form.scales) brutos[scale.key] = 0;
 
   for(const item of form.items){
     const resp = respostasMap[item.id];
     if(resp == null) continue;
-
     const pts = pontosItem(item, resp);
     if(pts == null) continue;
 
-    for(const sKey of item.scales){
-      brutos[sKey] += pts;
-    }
+    for(const sKey of item.scales) brutos[sKey] += pts;
   }
-
   return brutos;
 }
 
@@ -169,11 +161,9 @@ function calcularTscores(brutos){
       ts[scale.key] = null;
       continue;
     }
-
     const t = norms[String(bruto)];
     ts[scale.key] = (t == null) ? null : Number(t);
   }
-
   return ts;
 }
 
@@ -186,8 +176,10 @@ function classificarT(t){
 }
 
 function renderTabelaResultados(brutos, tscores){
-  const form = getForm();
   const tbody = $("#tblResultados tbody");
+  if(!tbody) return; // Segurança: Se não existir a tabela (modo paciente), ignora.
+  
+  const form = getForm();
   tbody.innerHTML = "";
 
   for(const scale of form.scales){
@@ -209,26 +201,6 @@ function renderTabelaResultados(brutos, tscores){
   }
 }
 
-function renderTabelaItens(respostasMap){
-  const form = getForm();
-  const tbody = $("#tblItens tbody");
-  tbody.innerHTML = "";
-
-  for(const item of form.items){
-    const resp = respostasMap[item.id];
-    const pts = (resp == null) ? null : pontosItem(item, resp);
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="nowrap">${escapeHtml(item.id)}</td>
-      <td class="nowrap">${resp ?? "—"}</td>
-      <td class="right nowrap">${pts ?? "—"}</td>
-      <td class="nowrap">${item.reverse ? "sim" : "não"}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-}
-
 function calcularEExibir(){
   const form = getForm();
   if(!form) return;
@@ -241,7 +213,9 @@ function calcularEExibir(){
 
   const total = form.items.length;
   const answered = total - missing;
-  $("#summaryLine").textContent = `Respondidos: ${answered}/${total} • Faltando: ${missing}`;
+  
+  const summaryLine = $("#summaryLine");
+  if(summaryLine) summaryLine.textContent = `Respondidos: ${answered}/${total} • Faltando: ${missing}`;
 
   return { respostas, brutos, tscores, missing };
 }
@@ -256,9 +230,15 @@ function limparTudo(){
   }
 
   atualizarContagemRespondidos();
-  $("#tblResultados tbody").innerHTML = "";
-  $("#tblItens tbody").innerHTML = "";
-  $("#summaryLine").textContent = "Preencha os itens e clique em “Recalcular”.";
+  
+  const tbRes = $("#tblResultados tbody");
+  if(tbRes) tbRes.innerHTML = "";
+  
+  const tbItens = $("#tblItens tbody");
+  if(tbItens) tbItens.innerHTML = "";
+  
+  const summaryLine = $("#summaryLine");
+  if(summaryLine) summaryLine.textContent = "Preencha os itens e clique em “Recalcular”.";
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -273,42 +253,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       setSubtitle(form.label || FORM_KEY);
     }
 
-    // default data = hoje
-    const today = new Date();
-    $("#data").value = today.toISOString().slice(0,10);
+    const dataInput = $("#data");
+    if(dataInput) dataInput.value = new Date().toISOString().slice(0,10);
 
     renderItens();
     atualizarContagemRespondidos();
 
-    $("#btnRecalc").addEventListener("click", () => {
-      calcularEExibir();
-    });
+    // Segurança: Só ativa o botão de recalcular se ele existir na página
+    const btnRecalc = $("#btnRecalc");
+    if(btnRecalc) btnRecalc.addEventListener("click", () => calcularEExibir());
 
-    $("#btnClear").addEventListener("click", () => {
-      limparTudo();
-    });
+    const btnClear = $("#btnClear");
+    if(btnClear) btnClear.addEventListener("click", () => limparTudo());
     
-    // Inicia a escuta do botão de enviar
     instalarBotaoEnviar();
-    instalarPrintComRelatorio();
 
   }catch(err){
     console.error(err);
     setSubtitle("Falha ao carregar regras.");
 
     const container = $("#itens");
-    container.innerHTML = `
-      <div class="small" style="color:#fca5a5">
-        Erro: ${escapeHtml(err.message || String(err))}
-        <br><br>
-        Confira se o arquivo existe em: <b>../data/srs2_rules.json</b>
-      </div>
-    `;
+    if(container){
+      container.innerHTML = `
+        <div class="small" style="color:#fca5a5">
+          Erro: ${escapeHtml(err.message || String(err))}
+          <br><br>
+          Confira se o arquivo existe em: <b>../data/srs2_rules.json</b>
+        </div>
+      `;
+    }
   }
 });
 
 // ------------------------------
-// RELATÓRIO (PRINT) – GERAÇÃO
+// RELATÓRIO (PRINT) – GERAÇÃO E PDFs
 // ------------------------------
 
 const SCALE_ORDER_HINTS = [
@@ -322,23 +300,15 @@ const SCALE_ORDER_HINTS = [
 ];
 
 const SCALE_DESCRIPTIONS = {
-  "Percepção Social":
-    "A Subescala de Intervenção de Percepção Social mede a capacidade de reconhecer pistas sociais e lidar com os aspectos da percepção do comportamento social recíproco.",
-  "Cognição Social":
-    "A Subescala de Intervenção Cognição Social refere-se à capacidade de interpretar as pistas sociais após reconhecê-las e lidar com o aspecto cognitivo-interpretativo do comportamento social recíproco.",
-  "Comunicação Social":
-    "A Subescala de Intervenção Comunicação Social mede a capacidade de comunicação expressiva, lidando com os aspectos motores do comportamento social recíproco. Esta categoria representa os aspectos \"robotizados\" do comportamento.",
-  "Motivação Social":
-    "A Subescala de Intervenção Motivação Social refere-se ao grau em que as pessoas geralmente são motivadas a se engajar em comportamento sócio interpessoal. Elementos de ansiedade social, inibição e orientação empática estão incluídos entre esses itens.",
-  "Padrões Restritos e Repetitivos":
-    "Padrões Restritos e Repetitivos encontra-se tanto nas subescalas de intervenção quanto nas escalas compatíveis ao DSM-5. Esta categoria mede a presença de comportamentos estereotípicos característicos de TEA e áreas de interesse muito limitadas.",
-  "Comunicação e Interação Social":
-    "Comunicação e Interação Social é uma das escalas compatíveis ao DSM-5 e é uma medida global que se relaciona tanto à capacidade de reconhecer e interpretar sinais sociais quanto à capacidade de motivação para o contato interpessoal social expressivo. Ela avalia a reciprocidade socioemocional, comportamentos comunicativos não verbais usados para interação social e capacidade de desenvolver, manter e compreender relacionamentos."
+  "Percepção Social": "A Subescala de Intervenção de Percepção Social mede a capacidade de reconhecer pistas sociais e lidar com os aspectos da percepção do comportamento social recíproco.",
+  "Cognição Social": "A Subescala de Intervenção Cognição Social refere-se à capacidade de interpretar as pistas sociais após reconhecê-las e lidar com o aspecto cognitivo-interpretativo do comportamento social recíproco.",
+  "Comunicação Social": "A Subescala de Intervenção Comunicação Social mede a capacidade de comunicação expressiva, lidando com os aspectos motores do comportamento social recíproco. Esta categoria representa os aspectos \"robotizados\" do comportamento.",
+  "Motivação Social": "A Subescala de Intervenção Motivação Social refere-se ao grau em que as pessoas geralmente são motivadas a se engajar em comportamento sócio interpessoal. Elementos de ansiedade social, inibição e orientação empática estão incluídos entre esses itens.",
+  "Padrões Restritos e Repetitivos": "Padrões Restritos e Repetitivos encontra-se tanto nas subescalas de intervenção quanto nas escalas compatíveis ao DSM-5. Esta categoria mede a presença de comportamentos estereotípicos característicos de TEA e áreas de interesse muito limitadas.",
+  "Comunicação e Interação Social": "Comunicação e Interação Social é uma das escalas compatíveis ao DSM-5 e é uma medida global que se relaciona tanto à capacidade de reconhecer e interpretar sinais sociais quanto à capacidade de motivação para o contato interpessoal social expressivo. Ela avalia a reciprocidade socioemocional, comportamentos comunicativos não verbais usados para interação social e capacidade de desenvolver, manter e compreender relacionamentos."
 };
 
-function normalizeStr(s){
-  return String(s || "").trim().toLowerCase();
-}
+function normalizeStr(s){ return String(s || "").trim().toLowerCase(); }
 
 function sortScalesLikePdf(scales){
   const scored = scales.map(sc => {
@@ -358,9 +328,7 @@ function countMissingByScale(form){
 
   for(const item of form.items){
     const sel = document.querySelector(`input[name="i${CSS.escape(String(item.id))}"]:checked`);
-    const answered = !!sel;
-    if(answered) continue;
-
+    if(!!sel) continue;
     for(const sKey of item.scales){
       if(missingByScale[sKey] != null) missingByScale[sKey] += 1;
     }
@@ -368,7 +336,6 @@ function countMissingByScale(form){
   return missingByScale;
 }
 
-// --- SVG: Perfil (linha com pontos) ---
 function svgProfileChart(rows){
   const W = 920, H = 450;
   const left = 100, right = 280, top = 40, bottom = 40;
@@ -387,7 +354,6 @@ function svgProfileChart(rows){
   const grayLight = "#dcdcdc";
   const grayMed = "#c8c8c8";
 
-  // Gráfico limpo sem height="auto"
   let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
 
@@ -436,7 +402,6 @@ function svgProfileChart(rows){
   return svg;
 }
 
-// --- SVG: Curva Sino (Detalhes da escala) ---
 function svgBell(t){
   const W=500, H=160;
   const tMin=20, tMax=80;
@@ -460,7 +425,6 @@ function svgBell(t){
 
   const xt = xOfT(t ?? 50);
 
-  // Gráfico limpo sem height="auto"
   return `
   <svg class="rep-bell" viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
@@ -499,20 +463,30 @@ function preencherRelatorioSRS2(result){
 
   const scalesSorted = sortScalesLikePdf(form.scales);
 
-  // header
-  document.getElementById("repSubTitle").textContent = (form.label || FORM_KEY);
-  document.getElementById("repTableSub").textContent = (form.label || FORM_KEY);
-  // Puxa o nome do teste e deixa em maiúsculas
-  const formLabelUpper = (form.label || FORM_KEY).toUpperCase();
-  document.getElementById("repProfileTitle").textContent = `${formLabelUpper} • ESCORE T (50+10z)`;
-  document.getElementById("repPaciente").textContent = document.getElementById("paciente").value || "—";
-  document.getElementById("repData").textContent = document.getElementById("data").value || "—";
-  document.getElementById("repAvaliador").textContent = document.getElementById("avaliador").value || "—";
+  const repSubTitle = document.getElementById("repSubTitle");
+  if(repSubTitle) repSubTitle.textContent = (form.label || FORM_KEY);
 
-  // missing por escala
+  const repTableSub = document.getElementById("repTableSub");
+  if(repTableSub) repTableSub.textContent = (form.label || FORM_KEY);
+
+  const formLabelUpper = (form.label || FORM_KEY).toUpperCase();
+  const repProfileTitle = document.getElementById("repProfileTitle");
+  if(repProfileTitle) repProfileTitle.textContent = `${formLabelUpper} • ESCORE T (50+10z)`;
+
+  const elPaciente = document.getElementById("repPaciente");
+  const inputPaciente = document.getElementById("paciente");
+  if(elPaciente) elPaciente.textContent = (inputPaciente ? inputPaciente.value : "") || "—";
+
+  const elData = document.getElementById("repData");
+  const inputData = document.getElementById("data");
+  if(elData) elData.textContent = (inputData ? inputData.value : "") || "—";
+
+  const elAvaliador = document.getElementById("repAvaliador");
+  const inputAvaliador = document.getElementById("avaliador");
+  if(elAvaliador) elAvaliador.textContent = (inputAvaliador ? inputAvaliador.value : "") || "—";
+
   const missingByScale = countMissingByScale(form);
 
-  // montar rows
   const rows = scalesSorted.map(sc => ({
     key: sc.key,
     label: sc.label || sc.key,
@@ -520,82 +494,67 @@ function preencherRelatorioSRS2(result){
     t: result.tscores?.[sc.key]
   }));
 
-  // 1) Perfil
-  document.getElementById("repProfileChart").innerHTML = svgProfileChart(rows);
+  const profileChart = document.getElementById("repProfileChart");
+  if(profileChart) profileChart.innerHTML = svgProfileChart(rows);
 
-  // 2) Tabela de escores
   const tbody = document.querySelector("#repScoreTable tbody");
-  tbody.innerHTML = "";
-  for(const r of rows){
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHtml(r.label)}</td>
-      <td class="right" style="text-align: right;">${r.t ?? "—"}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-
-  // 3) Seções por escala
-  const container = document.getElementById("repScaleSections");
-  container.innerHTML = "";
-
-for(const r of rows){
-    const t = (r.t == null ? null : Number(r.t));
-    const ciA = (t == null ? "—" : clamp(t - 4, 20, 80));
-    const ciB = (t == null ? "—" : clamp(t + 4, 20, 80));
-    const missing = missingByScale[r.key] ?? 0;
-
-    const descKey = SCALE_ORDER_HINTS.find(h => normalizeStr(r.label).includes(normalizeStr(h))) || r.label;
-    const desc = SCALE_DESCRIPTIONS[descKey] || "";
-
-    const sec = document.createElement("section");
-    sec.className = "rep-scale";
-
-    sec.innerHTML = `
-      <div style="font-size: 14pt; font-weight: bold; margin-bottom: 5px; color:#111;">${escapeHtml(r.label)}</div>
-      <div style="font-size: 10pt; color: #555; margin-bottom: 15px; text-transform: uppercase;">${formLabelUpper} • ESCORE T (50+10z)</div>
-
-      <div class="rep-scale-grid" style="display:flex; justify-content: space-between; align-items: flex-end;">
-        <div style="width: 45%;">
-          <table class="rep-mini-table" style="width:100%; border-collapse: collapse;">
-            <tbody>
-              <tr style="background:#f4f9f9;"><td style="padding:8px;">Pontuação bruta</td><td style="text-align:right; padding:8px;">${r.bruto ?? "—"}</td></tr>
-              <tr><td style="padding:8px;">Valor da norma</td><td style="text-align:right; padding:8px;">${r.t ?? "—"}</td></tr>
-              <tr style="background:#f4f9f9;"><td style="padding:8px;">Respostas faltantes (missing)</td><td style="text-align:right; padding:8px;">${missing}</td></tr>
-              <tr><td style="padding:8px;">Intervalo de confiança</td><td style="text-align:right; padding:8px;">[${ciA} - ${ciB}]</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="width: 50%;">
-          ${svgBell(t)}
-        </div>
-      </div>
-      <div class="rep-scale-desc" style="font-size: 11pt; line-height: 1.5; color: #333; text-align: justify;">${escapeHtml(desc)}</div>
-    `;
-
-    container.appendChild(sec);
-  }
-
-  // 4) Interpretação
-  document.getElementById("repInterpretation").innerHTML = buildInterpretationText();
-}
-
-function instalarPrintComRelatorio(){
-  const btn = document.getElementById("btnPrint");
-  if(!btn) return;
-
-  btn.addEventListener("click", () => {
-    const result = calcularEExibir();
-    if(result){
-      preencherRelatorioSRS2(result);
+  if(tbody){
+    tbody.innerHTML = "";
+    for(const r of rows){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(r.label)}</td>
+        <td class="right" style="text-align: right;">${r.t ?? "—"}</td>
+      `;
+      tbody.appendChild(tr);
     }
-    window.print();
-  });
+  }
+
+  const container = document.getElementById("repScaleSections");
+  if(container){
+    container.innerHTML = "";
+    for(const r of rows){
+      const t = (r.t == null ? null : Number(r.t));
+      const ciA = (t == null ? "—" : clamp(t - 4, 20, 80));
+      const ciB = (t == null ? "—" : clamp(t + 4, 20, 80));
+      const missing = missingByScale[r.key] ?? 0;
+
+      const descKey = SCALE_ORDER_HINTS.find(h => normalizeStr(r.label).includes(normalizeStr(h))) || r.label;
+      const desc = SCALE_DESCRIPTIONS[descKey] || "";
+
+      const sec = document.createElement("section");
+      sec.className = "rep-scale";
+
+      sec.innerHTML = `
+        <div style="font-size: 14pt; font-weight: bold; margin-bottom: 5px; color:#111;">${escapeHtml(r.label)}</div>
+        <div style="font-size: 10pt; color: #555; margin-bottom: 15px; text-transform: uppercase;">${formLabelUpper} • ESCORE T (50+10z)</div>
+
+        <div class="rep-scale-grid" style="display:flex; justify-content: space-between; align-items: flex-end;">
+          <div style="width: 45%;">
+            <table class="rep-mini-table" style="width:100%; border-collapse: collapse;">
+              <tbody>
+                <tr style="background:#f4f9f9;"><td style="padding:8px;">Pontuação bruta</td><td style="text-align:right; padding:8px;">${r.bruto ?? "—"}</td></tr>
+                <tr><td style="padding:8px;">Valor da norma</td><td style="text-align:right; padding:8px;">${r.t ?? "—"}</td></tr>
+                <tr style="background:#f4f9f9;"><td style="padding:8px;">Respostas faltantes (missing)</td><td style="text-align:right; padding:8px;">${missing}</td></tr>
+                <tr><td style="padding:8px;">Intervalo de confiança</td><td style="text-align:right; padding:8px;">[${ciA} - ${ciB}]</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="width: 50%;">
+            ${svgBell(t)}
+          </div>
+        </div>
+        <div class="rep-scale-desc" style="font-size: 11pt; line-height: 1.5; color: #333; text-align: justify;">${escapeHtml(desc)}</div>
+      `;
+
+      container.appendChild(sec);
+    }
+  }
+
+  const repInterp = document.getElementById("repInterpretation");
+  if(repInterp) repInterp.innerHTML = buildInterpretationText();
 }
 
-// ==========================================
-// FUNÇÕES DE ENVIO E FORMATAÇÃO DE PDF FINAL
-// ==========================================
 function instalarBotaoEnviar() {
   const btnEnviar = document.getElementById("btnEnviar");
   if (btnEnviar) {
@@ -615,21 +574,16 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
-  // 1. Cortina roxa de privacidade
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A formatar e enviar o relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
 
-  // 2. ISOLAMENTO PERFEITO: 
-  // Escondemos os cabeçalhos e a <main>. Como o #report está FORA da <main> no HTML, 
-  // ele assume o ecrã sozinho, colado no topo esquerdo, sem cortes laterais!
   const headers = document.querySelectorAll('header');
   const main = document.querySelector('main');
   headers.forEach(h => h.style.display = 'none');
   if(main) main.style.display = 'none';
 
-  // 3. Liga o relatório e injeta as cores verde-água à força (para o PDF não as ignorar)
   const elemento = document.getElementById("report");
   elemento.style.cssText = "display: block !important; margin: 0 !important; background: #fff !important;";
   
@@ -644,7 +598,6 @@ function finalizarEEnviar() {
 
   window.scrollTo(0, 0);
 
-  // 4. Espera 1.5s para os gráficos SVG desenharem corretamente e tira a foto
   setTimeout(() => {
     const opt = {
       margin: 0,
@@ -662,9 +615,9 @@ function finalizarEEnviar() {
     html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
       const base64Limpo = pdfBase64.split(',')[1];
-      const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
+      const inputPaciente = document.getElementById("paciente");
+      const nomePaciente = (inputPaciente ? inputPaciente.value : "") || "Paciente_Sem_Nome";
 
-      // 5. Envio para o Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
@@ -672,7 +625,6 @@ function finalizarEEnviar() {
       .then(res => res.json())
       .then(data => {
         if (data.status === "sucesso") {
-          // Destrói tudo e mostra sucesso
           document.body.innerHTML = `
             <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
               <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; width: 100%;">
@@ -685,7 +637,7 @@ function finalizarEEnviar() {
           `;
         } else {
           alert("Erro no envio: " + data.mensagem);
-          window.location.reload(); // Recarrega se falhar
+          window.location.reload(); 
         }
       })
       .catch(erro => {
