@@ -620,76 +620,96 @@ function finalizarEEnviar() {
   
   const btn = document.getElementById("btnEnviar");
   if (btn) {
-    btn.textContent = "A preparar o envio... aguarde";
+    btn.textContent = "A formatar o documento...";
     btn.style.opacity = "0.7";
     btn.disabled = true;
   }
 
-  // 1. Sobe a página ao topo para a "câmara" não se perder
   window.scrollTo(0, 0);
 
-  // 2. A SUA cortina de carregamento original
+  // 1. A cortina que protege a visão do paciente
   const cortina = document.createElement("div");
-  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
-  cortina.innerHTML = "<span>⏳ A encriptar e enviar as suas respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
+  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
+  cortina.innerHTML = "<span>⏳ A encriptar e formatar as respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
+
+  // 2. Desligar o site (O método que gerou o PDF quase perfeito)
+  const header1 = document.querySelector('.app-header');
+  const header2 = document.querySelector('header.no-print');
+  const mainContent = document.querySelector('main');
+
+  if(header1) header1.style.display = 'none';
+  if(header2) header2.style.display = 'none';
+  if(mainContent) mainContent.style.display = 'none';
 
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
   const elemento = document.getElementById("report");
 
-  // 3. O SEU TRUQUE: O relatório fica no ecrã (atrás da cortina).
-  // A ÚNICA DIFERENÇA: Adicionamos margin: 0 e width: 794px para o PDF não cortar a lateral esquerda.
-  elemento.style.cssText = "display: block !important; background: #fff !important; margin: 0 !important; padding: 20px !important; width: 794px !important;";
+  // 3. A CORREÇÃO FINAL: 
+  // Sem "position: absolute"! Assim a página mantém a sua altura.
+  // Colocamos margin: 0 para o relatório encostar à esquerda e não ser cortado.
+  elemento.style.cssText = "display: block !important; width: 794px !important; margin: 0 !important; padding: 20px 30px !important; background: #fff !important; box-sizing: border-box !important;";
 
-  // 4. Esperamos 1 segundo só para a página ter tempo de desenhar o SVG
+  // 4. Esperar 1.5s para os gráficos desenharem com perfeição
   setTimeout(() => {
     
-    // Configurações: Retirei o windowWidth: 1200 que causava o zoom gigante
     const opt = {
-      margin:       0,
+      margin:       0, 
       filename:     'resultado.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 }, 
+      html2canvas:  { 
+        scale: 2, 
+        useCORS: true, 
+        scrollX: 0, 
+        scrollY: 0,
+        windowWidth: 794 // Tranca na largura exata
+      }, 
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
-      // Esconde o relatório novamente
-      elemento.style.cssText = "display: none !important;";
-
+      elemento.style.display = 'none';
       const base64Limpo = pdfBase64.split(',')[1];
 
-      // Envia para o Drive
+      // 5. Envia para o Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
       })
       .then(response => response.json())
       .then(data => {
-        document.body.removeChild(cortina); 
-
         if (data.status === "sucesso") {
-          document.querySelector("main").innerHTML = `
-            <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
-              <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
-              <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-              <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
-              <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+          // Limpa tudo e mostra sucesso
+          document.body.innerHTML = `
+            <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+              <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; width: 100%;">
+                <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+                <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
+                <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança.</p>
+                <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+              </div>
             </div>
           `;
-          window.scrollTo(0, 0); 
         } else {
+          restaurarTela(cortina, header1, header2, mainContent, btn);
           alert("Ocorreu um erro ao enviar: " + data.mensagem);
-          if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
         }
       })
       .catch(erro => {
-        document.body.removeChild(cortina);
+        restaurarTela(cortina, header1, header2, mainContent, btn);
         alert("Erro de ligação. Por favor, verifique a sua internet.");
-        if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
       });
     });
 
-  }, 1000); // 1 segundo de tempo para os gráficos
+  }, 1500); 
+
+  // Função auxiliar caso falhe a internet
+  function restaurarTela(cortina, h1, h2, main, btn) {
+    if(cortina.parentNode) document.body.removeChild(cortina);
+    if(h1) h1.style.display = '';
+    if(h2) h2.style.display = '';
+    if(main) main.style.display = '';
+    if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+  }
 }
