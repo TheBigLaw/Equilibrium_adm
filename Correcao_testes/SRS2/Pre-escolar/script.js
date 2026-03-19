@@ -1,4 +1,4 @@
-// Cole a URL gigante gerada pelo Google Apps Script entre as aspas:
+
 const URL_DO_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwBUzlAykhgVOjW9HKAKGjXkgnA8SkjRdgGk5CstrM-uMYkSxAbHEQHieb2N29etYY7/exec";
 
 /**
@@ -281,16 +281,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderItens();
     atualizarContagemRespondidos();
 
-$("#btnRecalc").addEventListener("click", () => {
+    $("#btnRecalc").addEventListener("click", () => {
       calcularEExibir();
     });
 
     $("#btnClear").addEventListener("click", () => {
       limparTudo();
     });
-    
-    // Inicia a escuta do botão de enviar
-    instalarBotaoEnviar();
+    instalarPrintComRelatorio();
 
   }catch(err){
     console.error(err);
@@ -392,7 +390,7 @@ function svgProfileChart(rows){
   const grayMed = "#c8c8c8";
   const grayDark = "#b4b4b4";
 
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
 
   // Fundo Verde-água total
@@ -480,7 +478,7 @@ function svgBell(t){
   const xt = xOfT(t ?? 50);
 
   return `
-  <svg class="rep-bell" viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <svg class="rep-bell" viewBox="0 0 ${W} ${H}" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
     <path d="${d}" fill="#e8fbfa" />
     
@@ -602,114 +600,17 @@ for(const r of rows){
   document.getElementById("repInterpretation").innerHTML = buildInterpretationText();
 }
 
-// ==========================================
-// 1. FUNÇÃO PARA ATIVAR O BOTÃO DE ENVIAR
-// ==========================================
-function instalarBotaoEnviar() {
-  const btnEnviar = document.getElementById("btnEnviar");
-  if (btnEnviar) {
-    btnEnviar.addEventListener("click", () => {
-      finalizarEEnviar();
-    });
-  }
-}
+// IMPORTANTE: garantir que o botão Print preencha o relatório antes
+// Troque seu handler atual do btnPrint por este:
+function instalarPrintComRelatorio(){
+  const btn = document.getElementById("btnPrint");
+  if(!btn) return;
 
-function finalizarEEnviar() {
+btn.addEventListener("click", () => {
   const result = calcularEExibir();
-  if(result) preencherRelatorioSRS2(result);
-  
-  const btn = document.getElementById("btnEnviar");
-  if (btn) {
-    btn.textContent = "A formatar relatório...";
-    btn.disabled = true;
+  if(result){
+    preencherRelatorioSRS2(result);
   }
-
-  // Sobe a página ao topo para a foto começar do sítio certo
-  window.scrollTo(0, 0);
-
-  // 1. A CORTINA (Camada 999999 - O paciente só vai ver isto)
-  const cortina = document.createElement("div");
-  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
-  cortina.innerHTML = "<span>⏳ A formatar e enviar o relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
-  document.body.appendChild(cortina);
-
-  // 2. O RELATÓRIO (Camada 99999 - Visível para a câmara, mas por baixo da cortina!)
-  const elemento = document.getElementById("report");
-  const estiloOriginal = elemento.getAttribute("style") || ""; // Guarda o estilo para restaurar depois
-
-  // O SEGREDO ABSOLUTO: "position: absolute; top: 0; left: 0;"
-  // Isto arranca o relatório do meio da página e cola-o na borda esquerda. A câmara não vai cortar nada!
-  elemento.style.cssText = "display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 794px !important; padding: 40px !important; background: #fff !important; color: #111 !important; z-index: 99999 !important; box-sizing: border-box !important;";
-
-  // 3. AS CORES (Injetadas à força para não dependermos do CSS de impressão)
-  const styleId = "pdf-cores-forçadas";
-  let estiloCores = document.getElementById(styleId);
-  if (!estiloCores) {
-    estiloCores = document.createElement('style');
-    estiloCores.id = styleId;
-    estiloCores.innerHTML = `
-      #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; }
-      #report .rep-mini-table tr { background-color: #f9fbfb !important; }
-      #report .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
-      #report .rep-block-title { background-color: #e8fbfa !important; color: #111 !important; }
-    `;
-    document.head.appendChild(estiloCores);
-  }
-
-  // 4. A CAPTURA (Espera 1.5s para os gráficos SVG desenharem)
-  setTimeout(() => {
-    const opt = {
-      margin: 0, 
-      filename: 'resultado.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        windowWidth: 794, // Trava a câmara na largura exata do papel A4
-        scrollX: 0, 
-        scrollY: 0 
-      }, 
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
-      
-      // RESTAURA O RELATÓRIO AO NORMAL (invisível de novo)
-      elemento.setAttribute("style", estiloOriginal);
-      
-      const base64Limpo = pdfBase64.split(',')[1];
-      const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
-
-      // 5. ENVIO PARA O DRIVE
-      fetch(URL_DO_GOOGLE_SCRIPT, {
-        method: "POST",
-        body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "sucesso") {
-          // Destrói tudo e mostra a mensagem de sucesso
-          document.body.innerHTML = `
-            <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
-              <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; width: 100%;">
-                <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
-                <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-                <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança.</p>
-                <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
-              </div>
-            </div>
-          `;
-        } else {
-          if (cortina.parentNode) cortina.parentNode.removeChild(cortina);
-          alert("Erro no envio: " + data.mensagem);
-          if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
-        }
-      })
-      .catch(erro => {
-        if (cortina.parentNode) cortina.parentNode.removeChild(cortina);
-        alert("Erro de ligação. Por favor, verifique a sua internet.");
-        if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
-      });
-    });
-  }, 1500); 
+  window.print();
+});
 }
