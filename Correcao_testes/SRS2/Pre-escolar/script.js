@@ -48,6 +48,7 @@ function renderItens(){
     return;
   }
 
+  // TRAVÕES DE SEGURANÇA: Só atualiza se o elemento existir no HTML
   const pillForm = $("#pillForm");
   if(pillForm) pillForm.textContent = form.label || FORM_KEY;
 
@@ -176,7 +177,7 @@ function classificarT(t){
 
 function renderTabelaResultados(brutos, tscores){
   const tbody = $("#tblResultados tbody");
-  if(!tbody) return; 
+  if(!tbody) return; // Segurança: Se não existir a tabela (modo paciente), ignora.
   
   const form = getForm();
   tbody.innerHTML = "";
@@ -258,6 +259,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderItens();
     atualizarContagemRespondidos();
 
+    // Segurança: Só ativa o botão de recalcular se ele existir na página
     const btnRecalc = $("#btnRecalc");
     if(btnRecalc) btnRecalc.addEventListener("click", () => calcularEExibir());
 
@@ -403,7 +405,7 @@ function svgProfileChart(rows){
 function svgBell(t){
   const W=500, H=160;
   const tMin=20, tMax=80;
-  const xPad=20, yPad=20;
+  const xPad=20;
   const plotW = W - xPad*2;
   const baseY = H - 30;
 
@@ -427,14 +429,10 @@ function svgBell(t){
   <svg class="rep-bell" viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
     <path d="${d}" fill="#e8fbfa" />
-    
     <rect x="${xOfT(40)}" y="${baseY-110}" width="${xOfT(60)-xOfT(40)}" height="110" fill="#d0f0ee" opacity="0.4"/>
-
     <line x1="${xt}" y1="${baseY-110}" x2="${xt}" y2="${baseY}" stroke="#e3001b" stroke-width="2.5"/>
     <circle cx="${xt}" cy="${baseY-110}" r="5" fill="#e3001b"/>
-
     <line x1="${xPad}" y1="${baseY}" x2="${xPad+plotW}" y2="${baseY}" stroke="#111" stroke-width="1.5"/>
-
     ${[20,30,40,50,60,70,80].map(v => `
       <text x="${xOfT(v)}" y="${baseY+20}" text-anchor="middle" font-size="14" font-family="Arial" fill="#111">${v}</text>
     `).join("")}
@@ -566,9 +564,6 @@ function instalarBotaoEnviar() {
   }
 }
 
-// ==============================================================
-// A ABORDAGEM DO "ESTÚDIO DE IMPRESSÃO" PARA EVITAR LETRAS GIGANTES
-// ==============================================================
 function finalizarEEnviar() {
   const result = calcularEExibir();
   if(result) preencherRelatorioSRS2(result);
@@ -579,69 +574,50 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
-  // 1. A CORTINA DE PROTEÇÃO (Fica por cima de tudo no ecrã)
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A formatar e enviar o relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
 
-  // 2. O ESTÚDIO DE IMPRESSÃO ISOLADO
-  // Cria uma caixa invisível por baixo da cortina com exatos 800px.
-  // Como tem 800px fixos, as fontes não serão esticadas baseadas no monitor do utilizador!
-  const printStudio = document.createElement("div");
-  printStudio.id = "print-studio";
-  printStudio.style.cssText = "position: absolute; top: 0; left: 0; width: 800px; background: #fff; z-index: 999990; padding: 0;";
-  
-  // Clonamos o relatório para dentro do estúdio
-  const relatorioOriginal = document.getElementById("report");
-  const clone = relatorioOriginal.cloneNode(true);
-  clone.id = "report-clone"; // Mudamos o ID do clone por segurança
-  clone.style.display = "block"; 
-  
-  printStudio.appendChild(clone);
-  document.body.appendChild(printStudio);
+  const headers = document.querySelectorAll('header');
+  const main = document.querySelector('main');
+  headers.forEach(h => h.style.display = 'none');
+  if(main) main.style.display = 'none';
 
-  // 3. INJETAR CORES NO ESTÚDIO (Para as tabelas saírem pintadas)
+  const elemento = document.getElementById("report");
+  elemento.style.cssText = "display: block !important; margin: 0 !important; background: #fff !important;";
+  
   const estiloCores = document.createElement('style');
   estiloCores.innerHTML = `
-    #print-studio .rep-page { width: 100% !important; min-height: auto !important; }
-    #print-studio .rep-table th { background-color: #e8fbfa !important; color: #111 !important; }
-    #print-studio .rep-mini-table tr { background-color: #f9fbfb !important; }
-    #print-studio .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
-    #print-studio .rep-block-title { background-color: #e8fbfa !important; color: #111 !important; }
+    #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #report .rep-mini-table tr { background-color: #f9fbfb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #report .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
+    #report .rep-block-title { background-color: #e8fbfa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   `;
   document.head.appendChild(estiloCores);
 
   window.scrollTo(0, 0);
 
-  // 4. A CAPTURA
-  setTimeout(() => {
-    
-    // Adicionamos "margin: 10" para criar uma moldura branca global.
-    // Assim, nenhuma letra pode alguma vez tocar na borda e ser cortada.
+setTimeout(() => {
     const opt = {
-      margin:       10, 
-      filename:     'resultado.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { 
+      margin: 0,
+      filename: 'resultado.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
         scale: 2, 
         useCORS: true, 
-        windowWidth: 800 // Trava a câmara nos 800px
+        scrollX: 0, 
+        scrollY: 0 
       }, 
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(printStudio).outputPdf('datauristring').then(function(pdfBase64) {
+    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
-      // DESTRÓI O ESTÚDIO ASSIM QUE TIRA A FOTO
-      document.body.removeChild(printStudio);
-      document.head.removeChild(estiloCores);
-
       const base64Limpo = pdfBase64.split(',')[1];
       const inputPaciente = document.getElementById("paciente");
       const nomePaciente = (inputPaciente ? inputPaciente.value : "") || "Paciente_Sem_Nome";
 
-      // 5. ENVIA PARA O DRIVE
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
