@@ -1,3 +1,5 @@
+// Cole a URL gigante gerada pelo Google Apps Script entre as aspas:
+const URL_DO_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwBUzlAykhgVOjW9HKAKGjXkgnA8SkjRdgGk5CstrM-uMYkSxAbHEQHieb2N29etYY7/exec";
 
 /**
  * TROQUE SOMENTE ISSO EM CADA PASTA
@@ -611,4 +613,66 @@ btn.addEventListener("click", () => {
   }
   window.print();
 });
+}
+
+function finalizarEEnviar() {
+  // 1. Garante que os cálculos foram feitos antes de gerar o PDF
+  calcularEExibir();
+
+  // 2. Muda visualmente o botão para mostrar que está a carregar
+  const btn = document.getElementById("btnEnviar");
+  if (btn) {
+    btn.textContent = "A enviar de forma segura... aguarde";
+    btn.style.opacity = "0.7";
+    btn.disabled = true;
+  }
+
+  const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
+  const elemento = document.getElementById("report");
+
+  // 3. Configurações para garantir qualidade Premium (igual ao que estava antes)
+  const opt = {
+    margin:       0,
+    filename:     'resultado.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  // 4. Gera o PDF em background (sem a tela de impressão) e envia
+  html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+    // Limpa o formato para enviar pela internet
+    const base64Limpo = pdfBase64.split(',')[1];
+
+    // 5. Comunica com o Google Drive
+    fetch(URL_DO_GOOGLE_SCRIPT, {
+      method: "POST",
+      body: JSON.stringify({
+        pdf: base64Limpo,
+        nome: nomePaciente
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === "sucesso") {
+        // SUCESSO! Esconde todo o questionário e mostra mensagem de agradecimento
+        document.querySelector("main").innerHTML = `
+          <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+            <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+            <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Finalizado com Sucesso!</h1>
+            <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram enviadas com segurança para o profissional responsável.</p>
+            <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta página.</p>
+          </div>
+        `;
+        window.scrollTo(0, 0); // Sobe para o topo da página para o paciente ler
+      } else {
+        alert("Ocorreu um erro ao enviar: " + data.mensagem);
+        if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+      }
+    })
+    .catch(erro => {
+      alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
+      if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
+    });
+  });
 }
