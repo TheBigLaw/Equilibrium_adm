@@ -620,42 +620,67 @@ function finalizarEEnviar() {
   
   const btn = document.getElementById("btnEnviar");
   if (btn) {
-    btn.textContent = "A preparar envio...";
+    btn.textContent = "A formatar relatório...";
     btn.disabled = true;
   }
 
-  // A cortina de carregamento roxa (com o ID correto)
+  // Sobe a página ao topo para a foto começar do sítio certo
+  window.scrollTo(0, 0);
+
+  // 1. A CORTINA (Camada 999999 - O paciente só vai ver isto)
   const cortina = document.createElement("div");
-  cortina.id = "cortina-loading"; 
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A formatar e enviar o relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
 
-  const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
+  // 2. O RELATÓRIO (Camada 99999 - Visível para a câmara, mas por baixo da cortina!)
   const elemento = document.getElementById("report");
+  const estiloOriginal = elemento.getAttribute("style") || ""; // Guarda o estilo para restaurar depois
 
-  // O MÉTODO LIMPO: Ligamos as regras que colocámos no CSS
-  document.body.classList.add("pdf-mode");
-  window.scrollTo(0, 0);
+  // O SEGREDO ABSOLUTO: "position: absolute; top: 0; left: 0;"
+  // Isto arranca o relatório do meio da página e cola-o na borda esquerda. A câmara não vai cortar nada!
+  elemento.style.cssText = "display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 794px !important; padding: 40px !important; background: #fff !important; color: #111 !important; z-index: 99999 !important; box-sizing: border-box !important;";
 
-  // Aguardamos 1.5s para as cores e gráficos se desenharem
+  // 3. AS CORES (Injetadas à força para não dependermos do CSS de impressão)
+  const styleId = "pdf-cores-forçadas";
+  let estiloCores = document.getElementById(styleId);
+  if (!estiloCores) {
+    estiloCores = document.createElement('style');
+    estiloCores.id = styleId;
+    estiloCores.innerHTML = `
+      #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; }
+      #report .rep-mini-table tr { background-color: #f9fbfb !important; }
+      #report .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
+      #report .rep-block-title { background-color: #e8fbfa !important; color: #111 !important; }
+    `;
+    document.head.appendChild(estiloCores);
+  }
+
+  // 4. A CAPTURA (Espera 1.5s para os gráficos SVG desenharem)
   setTimeout(() => {
     const opt = {
       margin: 0, 
       filename: 'resultado.pdf',
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, windowWidth: 794, scrollX: 0, scrollY: 0 }, 
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        windowWidth: 794, // Trava a câmara na largura exata do papel A4
+        scrollX: 0, 
+        scrollY: 0 
+      }, 
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
-      // Foto tirada! O site volta exatamente ao normal
-      document.body.classList.remove("pdf-mode");
-
+      // RESTAURA O RELATÓRIO AO NORMAL (invisível de novo)
+      elemento.setAttribute("style", estiloOriginal);
+      
       const base64Limpo = pdfBase64.split(',')[1];
+      const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
 
-      // Envia para o Drive
+      // 5. ENVIO PARA O DRIVE
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
@@ -663,6 +688,7 @@ function finalizarEEnviar() {
       .then(res => res.json())
       .then(data => {
         if (data.status === "sucesso") {
+          // Destrói tudo e mostra a mensagem de sucesso
           document.body.innerHTML = `
             <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
               <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; width: 100%;">
@@ -674,13 +700,13 @@ function finalizarEEnviar() {
             </div>
           `;
         } else {
-          if(cortina.parentNode) cortina.parentNode.removeChild(cortina);
+          if (cortina.parentNode) cortina.parentNode.removeChild(cortina);
           alert("Erro no envio: " + data.mensagem);
           if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
         }
       })
       .catch(erro => {
-        if(cortina.parentNode) cortina.parentNode.removeChild(cortina);
+        if (cortina.parentNode) cortina.parentNode.removeChild(cortina);
         alert("Erro de ligação. Por favor, verifique a sua internet.");
         if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
       });
