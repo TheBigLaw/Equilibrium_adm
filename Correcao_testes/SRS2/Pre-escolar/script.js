@@ -616,60 +616,43 @@ function instalarBotaoEnviar() {
 
 function finalizarEEnviar() {
   const result = calcularEExibir();
-  if(result){ preencherRelatorioSRS2(result); }
+  if(result) preencherRelatorioSRS2(result);
   
   const btn = document.getElementById("btnEnviar");
   if (btn) {
-    btn.textContent = "A formatar o documento...";
-    btn.style.opacity = "0.7";
+    btn.textContent = "A preparar envio...";
     btn.disabled = true;
   }
 
-  window.scrollTo(0, 0);
-
-  // 1. A cortina que protege a visão do paciente
+  // 1. Cortina de Carregamento (Agora com ID para o CSS a reconhecer)
   const cortina = document.createElement("div");
+  cortina.id = "cortina-loading"; 
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
-  cortina.innerHTML = "<span>⏳ A encriptar e formatar as respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
+  cortina.innerHTML = "<span>⏳ A formatar e enviar o relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
-
-  // 2. Desligar o site (O método que gerou o PDF quase perfeito)
-  const header1 = document.querySelector('.app-header');
-  const header2 = document.querySelector('header.no-print');
-  const mainContent = document.querySelector('main');
-
-  if(header1) header1.style.display = 'none';
-  if(header2) header2.style.display = 'none';
-  if(mainContent) mainContent.style.display = 'none';
 
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
   const elemento = document.getElementById("report");
 
-  // 3. A CORREÇÃO FINAL: 
-  // Sem "position: absolute"! Assim a página mantém a sua altura.
-  // Colocamos margin: 0 para o relatório encostar à esquerda e não ser cortado.
-  elemento.style.cssText = "display: block !important; width: 794px !important; margin: 0 !important; padding: 20px 30px !important; background: #fff !important; box-sizing: border-box !important;";
+  // 2. O MÉTODO LIMPO: Apenas ligamos a classe no Body e o CSS faz a mágica!
+  document.body.classList.add("pdf-mode");
+  window.scrollTo(0, 0);
 
-  // 4. Esperar 1.5s para os gráficos desenharem com perfeição
+  // 3. Aguardamos 1.5s e tiramos a foto
   setTimeout(() => {
-    
     const opt = {
-      margin:       0, 
-      filename:     'resultado.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { 
-        scale: 2, 
-        useCORS: true, 
-        scrollX: 0, 
-        scrollY: 0,
-        windowWidth: 794 // Tranca na largura exata
-      }, 
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      margin: 0, 
+      filename: 'resultado.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, windowWidth: 794, scrollX: 0, scrollY: 0 }, 
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
-      elemento.style.display = 'none';
+      // 4. Foto tirada! Desligamos o Modo PDF e o site volta ao normal.
+      document.body.classList.remove("pdf-mode");
+
       const base64Limpo = pdfBase64.split(',')[1];
 
       // 5. Envia para o Drive
@@ -677,10 +660,10 @@ function finalizarEEnviar() {
         method: "POST",
         body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
       })
-      .then(response => response.json())
+      .then(res => res.json())
       .then(data => {
         if (data.status === "sucesso") {
-          // Limpa tudo e mostra sucesso
+          // Sucesso Total
           document.body.innerHTML = `
             <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
               <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; width: 100%;">
@@ -692,24 +675,16 @@ function finalizarEEnviar() {
             </div>
           `;
         } else {
-          restaurarTela(cortina, header1, header2, mainContent, btn);
-          alert("Ocorreu um erro ao enviar: " + data.mensagem);
+          if(cortina.parentNode) cortina.parentNode.removeChild(cortina);
+          alert("Erro no envio: " + data.mensagem);
+          if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
         }
       })
       .catch(erro => {
-        restaurarTela(cortina, header1, header2, mainContent, btn);
+        if(cortina.parentNode) cortina.parentNode.removeChild(cortina);
         alert("Erro de ligação. Por favor, verifique a sua internet.");
+        if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
       });
     });
-
   }, 1500); 
-
-  // Função auxiliar caso falhe a internet
-  function restaurarTela(cortina, h1, h2, main, btn) {
-    if(cortina.parentNode) document.body.removeChild(cortina);
-    if(h1) h1.style.display = '';
-    if(h2) h2.style.display = '';
-    if(main) main.style.display = '';
-    if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
-  }
 }
