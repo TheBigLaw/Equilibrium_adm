@@ -615,13 +615,13 @@ function instalarBotaoEnviar() {
 }
 
 function finalizarEEnviar() {
-  // 1. Garante que os cálculos foram feitos e o relatório foi montado
+  // Garante que os cálculos foram feitos e o relatório foi montado
   const result = calcularEExibir();
   if(result){
     preencherRelatorioSRS2(result);
   }
   
-  // 2. Muda visualmente o botão
+  // Muda visualmente o botão
   const btn = document.getElementById("btnEnviar");
   if (btn) {
     btn.textContent = "A preparar o documento... aguarde";
@@ -629,33 +629,28 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
+  // Sobe a página para o topo
   window.scrollTo(0, 0);
 
-  // 3. Cria a "Cortina de Carregamento" para tapar a visão do paciente
+  // Cria a "Cortina de Carregamento"
   const cortina = document.createElement("div");
-  cortina.style.cssText = "position: absolute; top: 0; left: 0; width: 100vw; height: 150vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: flex-start; justify-content: center; padding-top: 20vh; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
-  cortina.innerHTML = "<div style='text-align: center; width: 100%;'><span>⏳ A encriptar e formatar as respostas...</span><br><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span></div>";
+  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
+  cortina.innerHTML = "<span>⏳ A encriptar e formatar as respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
 
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
-  
-  // A TÉCNICA DO CLONE INFALÍVEL:
-  // Em vez de usarmos o original, criamos uma cópia física dele
-  const elementoOriginal = document.getElementById("report");
-  const clone = elementoOriginal.cloneNode(true);
-  
-  // Colocamos o clone no topo da página, debaixo da cortina (z-index 9990), forçando-o a aparecer
-  clone.style.cssText = "display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 850px !important; padding: 40px !important; background: #fff !important; z-index: 9990 !important; margin: 0 !important; color: #111 !important;";
-  
-  // Adicionamos o clone à página para a câmara o poder "ver"
-  document.body.appendChild(clone);
+  const elemento = document.getElementById("report");
 
-  // 4. Atraso para garantir que a cópia foi desenhada no ecrã
+  // O GRANDE TRUQUE: Arranca o relatório do fluxo do site e cola-o na coordenada (0,0) do ecrã
+  // Usamos padding em vez de margem para criar o espaço branco seguro em volta do PDF
+  elemento.style.cssText = "display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 850px !important; padding: 40px !important; background: #fff !important; z-index: 9990 !important; margin: 0 !important;";
+
+  // Atraso ligeiramente maior (0.8s) para garantir que o navegador desenha o layout forçado
   setTimeout(() => {
     
-    // Configurações de captura
+    // Configurações de alta qualidade da câmara
     const opt = {
-      margin:       0, 
+      margin:       0, // A margem já foi dada pelo padding: 40px acima
       filename:     'resultado.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { 
@@ -663,20 +658,22 @@ function finalizarEEnviar() {
         useCORS: true, 
         scrollX: 0, 
         scrollY: 0, 
-        windowWidth: 1024 
+        x: 0, // OBRIGA a câmara a começar a fotografar exatamente na borda esquerda
+        y: 0  // OBRIGA a câmara a começar exatamente no topo
       }, 
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // 5. Gera o PDF USANDO O CLONE!
-    html2pdf().set(opt).from(clone).outputPdf('datauristring').then(function(pdfBase64) {
+    // Gera o PDF
+    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
-      // O PDF foi gerado! Agora destruímos as provas (apagamos o clone da página)
-      document.body.removeChild(clone);
+      // Esconde o relatório e limpa toda a formatação forçada que aplicámos
+      elemento.style.cssText = "display: none !important;";
 
+      // Prepara os dados
       const base64Limpo = pdfBase64.split(',')[1];
 
-      // 6. Envia para o Google Drive
+      // Envia para o Google Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({
@@ -686,9 +683,11 @@ function finalizarEEnviar() {
       })
       .then(response => response.json())
       .then(data => {
+        // Remove a cortina de carregamento
         document.body.removeChild(cortina); 
 
         if (data.status === "sucesso") {
+          // SUCESSO! Mostra a mensagem de agradecimento
           document.querySelector("main").innerHTML = `
             <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
               <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
@@ -710,5 +709,5 @@ function finalizarEEnviar() {
       });
     });
 
-  }, 1000); // 1 segundo completo de margem de segurança
+  }, 800); 
 }
