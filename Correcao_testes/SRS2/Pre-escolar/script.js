@@ -392,7 +392,7 @@ function svgProfileChart(rows){
   const grayMed = "#c8c8c8";
   const grayDark = "#b4b4b4";
 
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
 
   // Fundo Verde-água total
@@ -480,7 +480,7 @@ function svgBell(t){
   const xt = xOfT(t ?? 50);
 
   return `
-  <svg class="rep-bell" viewBox="0 0 ${W} ${H}" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg">
+  <svg class="rep-bell" viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg">
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
     <path d="${d}" fill="#e8fbfa" />
     
