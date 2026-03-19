@@ -574,6 +574,7 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
+  // 1. Cortina roxa de privacidade
   const cortina = document.createElement("div");
   cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A formatar e enviar o relatório...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
@@ -584,11 +585,17 @@ function finalizarEEnviar() {
   headers.forEach(h => h.style.display = 'none');
   if(main) main.style.display = 'none';
 
+  // 2. A CORREÇÃO DE ESCALA: Trancamos o relatório na largura exata de 794 pixels.
+  // Colocamos um padding de 40px para criar a margem branca e "box-sizing" para a margem não somar ao tamanho total.
   const elemento = document.getElementById("report");
-  elemento.style.cssText = "display: block !important; margin: 0 !important; background: #fff !important;";
+  elemento.style.cssText = "display: block !important; margin: 0 auto !important; background: #fff !important; width: 794px !important; padding: 40px !important; box-sizing: border-box !important;";
   
   const estiloCores = document.createElement('style');
   estiloCores.innerHTML = `
+    /* Anula as medidas antigas do CSS para obedecer apenas aos 794px que definimos no Javascript */
+    #report .rep-page { width: 100% !important; min-height: auto !important; padding: 0 !important; }
+    
+    /* Cores das tabelas */
     #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #report .rep-mini-table tr { background-color: #f9fbfb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #report .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
@@ -598,7 +605,8 @@ function finalizarEEnviar() {
 
   window.scrollTo(0, 0);
 
-setTimeout(() => {
+  // 3. CAPTURA DA FOTO
+  setTimeout(() => {
     const opt = {
       margin: 0,
       filename: 'resultado.pdf',
@@ -607,7 +615,8 @@ setTimeout(() => {
         scale: 2, 
         useCORS: true, 
         scrollX: 0, 
-        scrollY: 0 
+        scrollY: 0,
+        windowWidth: 794 // Diz à câmara que o monitor virtual tem sempre 794px (bloqueia o zoom)
       }, 
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
@@ -618,6 +627,7 @@ setTimeout(() => {
       const inputPaciente = document.getElementById("paciente");
       const nomePaciente = (inputPaciente ? inputPaciente.value : "") || "Paciente_Sem_Nome";
 
+      // 4. Envio para o Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
         body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
