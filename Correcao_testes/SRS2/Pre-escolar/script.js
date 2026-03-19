@@ -619,7 +619,6 @@ function finalizarEEnviar() {
   const result = calcularEExibir();
   if(result){ preencherRelatorioSRS2(result); }
   
-  // 2. Muda visualmente o botão
   const btn = document.getElementById("btnEnviar");
   if (btn) {
     btn.textContent = "A preparar o documento... aguarde";
@@ -627,72 +626,92 @@ function finalizarEEnviar() {
     btn.disabled = true;
   }
 
-  // 3. Cria a cortina de carregamento na tela inteira
+  window.scrollTo(0, 0);
+
+  // 2. Levanta a "Cortina de Carregamento" para tapar a visão do paciente
   const cortina = document.createElement("div");
-  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 9999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
+  cortina.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #f6f3ff; z-index: 999999; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #4c1d95; font-weight: bold; flex-direction: column; gap: 15px;";
   cortina.innerHTML = "<span>⏳ A encriptar e formatar as respostas...</span><span style='font-size: 16px; color: #6d28d9;'>Por favor, não feche esta página.</span>";
   document.body.appendChild(cortina);
 
   const nomePaciente = document.getElementById("paciente").value || "Paciente_Sem_Nome";
   const elemento = document.getElementById("report");
 
-  // O GRANDE TRUQUE: Prendemos o relatório no topo esquerdo (position: fixed) 
-  // e forçamos a largura exata do papel A4 (800px) por baixo da cortina (z-index 9990)
-  elemento.style.cssText = "display: block !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 800px !important; padding: 25px !important; background: #fff !important; z-index: 9990 !important;";
+  // 3. A TÁTICA INFALÍVEL: Desligar o resto do site!
+  // Vamos esconder o cabeçalho e a área de perguntas. Assim, a câmara não se distrai com mais nada.
+  const appHeader = document.querySelector('.app-header');
+  const headerNoPrint = document.querySelector('header.no-print');
+  const mainContent = document.querySelector('main');
 
-  // Damos 0.8s para o navegador desenhar tudo com as novas larguras
+  if (appHeader) appHeader.style.display = 'none';
+  if (headerNoPrint) headerNoPrint.style.display = 'none';
+  if (mainContent) mainContent.style.display = 'none';
+
+  // 4. Mostramos apenas o relatório, solto na página, perfeitamente centralizado
+  elemento.style.cssText = "display: block !important; width: 850px !important; margin: 0 auto !important; padding: 40px !important; background: #fff !important;";
+
+  // Atraso de 0.8s para a câmara focar no novo ecrã limpo
   setTimeout(() => {
     
-    // Configuração com margem interna de segurança
     const opt = {
-      margin:       10, 
+      margin:       0,
       filename:     'resultado.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { 
         scale: 2, 
         useCORS: true, 
-        windowWidth: 800 // OBRIGATÓRIO: Avisa a câmara que a tela tem exatos 800px
+        scrollY: 0,
+        windowWidth: 850 // A câmara e o relatório têm exatamente o mesmo tamanho agora
       }, 
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
       
-      // A foto foi tirada! Escondemos o relatório e limpamos as forçadas de CSS
+      // A FOTO FOI TIRADA! Voltamos a esconder o relatório e a ligar o site
       elemento.style.cssText = "display: none !important;";
+      if (appHeader) appHeader.style.display = '';
+      if (headerNoPrint) headerNoPrint.style.display = '';
+      if (mainContent) mainContent.style.display = '';
 
       const base64Limpo = pdfBase64.split(',')[1];
 
-      // Envia para o Google Drive
+      // 5. Envia o PDF para o Google Drive
       fetch(URL_DO_GOOGLE_SCRIPT, {
         method: "POST",
-        body: JSON.stringify({ pdf: base64Limpo, nome: nomePaciente })
+        body: JSON.stringify({
+          pdf: base64Limpo,
+          nome: nomePaciente
+        })
       })
       .then(response => response.json())
       .then(data => {
+        // Remove a cortina
         document.body.removeChild(cortina); 
 
         if (data.status === "sucesso") {
-          document.querySelector("main").innerHTML = `
-            <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto;">
-              <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
-              <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
-              <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
-              <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+          // Destrói o site visualmente e deixa apenas a mensagem de sucesso limpa
+          document.body.innerHTML = `
+            <div style="background: #f6f3ff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
+              <div style="text-align: center; padding: 60px 20px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); max-width: 600px; width: 100%;">
+                <div style="font-size: 50px; margin-bottom: 20px;">✅</div>
+                <h1 style="color: #4c1d95; font-size: 26px; margin-bottom: 10px;">Avaliação Finalizada!</h1>
+                <p style="font-size: 16px; color: #555; line-height: 1.5;">As suas respostas foram processadas e enviadas com segurança para o profissional responsável.</p>
+                <p style="font-size: 14px; color: #888; margin-top: 30px;">Já pode fechar esta janela.</p>
+              </div>
             </div>
           `;
-          window.scrollTo(0, 0); 
         } else {
           alert("Ocorreu um erro ao enviar: " + data.mensagem);
-          if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
+          if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
         }
       })
       .catch(erro => {
         document.body.removeChild(cortina);
         alert("Erro de ligação. Por favor, verifique a sua internet e tente novamente.");
-        if (btn) { btn.textContent = "Tentar Novamente"; btn.disabled = false; }
+        if (btn) { btn.textContent = "Tentar Novamente"; btn.style.opacity = "1"; btn.disabled = false; }
       });
     });
 
-  }, 800); 
+  }, 800);
 }
