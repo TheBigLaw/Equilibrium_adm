@@ -5,6 +5,12 @@ const URL_DO_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbwBUzlAykh
  * TROQUE SOMENTE ISSO EM CADA PASTA
  */
 const FORM_KEY = "idade_escolar_masculino";
+// Exemplos:
+// "pre_escolar"
+// "idade_escolar_feminino"
+// "idade_escolar_masculino"
+// "adulto_autorrelato"
+// "adulto_heterorrelato"
 
 let SRS2_RULES = null;
 
