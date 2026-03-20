@@ -12,7 +12,7 @@ const $ = (sel) => document.querySelector(sel);
 
 function setSubtitle(msg){
   const sub = $("#subtitle");
-  if(sub) sub.textContent = msg; // TRAVÃO DE SEGURANÇA
+  if(sub) sub.textContent = msg; 
 }
 
 async function carregarRegras(){
@@ -301,7 +301,7 @@ const SCALE_DESCRIPTIONS = {
   "Percepção Social": "A Subescala de Intervenção de Percepção Social mede a capacidade de reconhecer pistas sociais e lidar com os aspectos da percepção do comportamento social recíproco.",
   "Cognição Social": "A Subescala de Intervenção Cognição Social refere-se à capacidade de interpretar as pistas sociais após reconhecê-las e lidar com o aspecto cognitivo-interpretativo do comportamento social recíproco.",
   "Comunicação Social": "A Subescala de Intervenção Comunicação Social mede a capacidade de comunicação expressiva, lidando com os aspectos motores do comportamento social recíproco. Esta categoria representa os aspectos \"robotizados\" do comportamento.",
-  "Motivação Social": "A Subescala de Intervenção Motivação Social refere-se ao grau em que as pessoas généralement são motivadas a se engajar em comportamento sócio interpessoal. Elementos de ansiedade social, inibição e orientação empática estão incluídos entre esses itens.",
+  "Motivação Social": "A Subescala de Intervenção Motivação Social refere-se ao grau em que as pessoas geralmente são motivadas a se engajar em comportamento sócio interpessoal. Elementos de ansiedade social, inibição e orientação empática estão incluídos entre esses itens.",
   "Padrões Restritos e Repetitivos": "Padrões Restritos e Repetitivos encontra-se tanto nas subescalas de intervenção quanto nas escalas compatíveis ao DSM-5. Esta categoria mede a presença de comportamentos estereotípicos característicos de TEA e áreas de interesse muito limitadas.",
   "Comunicação e Interação Social": "Comunicação e Interação Social é uma das escalas compatíveis ao DSM-5 e é uma medida global que se relaciona tanto à capacidade de reconhecer e interpretar sinais sociais quanto à capacidade de motivação para o contato interpessoal social expressivo. Ela avalia a reciprocidade socioemocional, comportamentos comunicativos não verbais usados para interação social e capacidade de desenvolver, manter e compreender relacionamentos."
 };
@@ -334,9 +334,10 @@ function countMissingByScale(form){
   return missingByScale;
 }
 
+// AJUSTE: Gráfico com a margem esquerda estendida para a palavra "Dado" não ser cortada
 function svgProfileChart(rows){
   const W = 920, H = 450;
-  const left = 100, right = 280, top = 40, bottom = 40;
+  const left = 130, right = 280, top = 40, bottom = 40; // 'left' aumentado para proteger o texto
   const plotW = W - left - right;
   const plotH = H - top - bottom;
   const tMin = 20, tMax = 80;
@@ -372,8 +373,9 @@ function svgProfileChart(rows){
     svg += `<text x="${x}" y="${top-10}" text-anchor="middle" font-size="12" font-family="Arial" fill="#111">${label}</text>`;
   }
 
-  svg += `<text x="${15}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 15, ${top-10})">Dados brutos</text>`;
-  svg += `<text x="${35}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 35, ${top-10})">Normas</text>`;
+  // Posição de "Dados brutos" e "Normas" afinada matematicamente para nunca ser cortada
+  svg += `<text x="${25}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 25, ${top-10})">Dados brutos</text>`;
+  svg += `<text x="${50}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 50, ${top-10})">Normas</text>`;
 
   rows.forEach((r,i) => {
     svg += `<line x1="${xOfT(20)}" y1="${yOfI(i)}" x2="${xOfT(80)}" y2="${yOfI(i)}" stroke="#fff" stroke-width="1.5" />`;
@@ -390,8 +392,8 @@ function svgProfileChart(rows){
   rows.forEach((r,i) => {
     const y = yOfI(i);
     const x = xOfT(r.t ?? 50);
-    svg += `<text x="${10}" y="${y+4}" font-size="12" font-family="Arial" fill="#111">${r.bruto ?? "—"}</text>`;
-    svg += `<text x="${30}" y="${y+4}" font-size="12" font-family="Arial" fill="#111">${r.t ?? "—"}</text>`;
+    svg += `<text x="${15}" y="${y+4}" font-size="12" font-family="Arial" fill="#111">${r.bruto ?? "—"}</text>`;
+    svg += `<text x="${40}" y="${y+4}" font-size="12" font-family="Arial" fill="#111">${r.t ?? "—"}</text>`;
     svg += `<circle cx="${x}" cy="${y}" r="6" fill="#e3001b"/>`;
     svg += `<text x="${xOfT(80) + 15}" y="${y+4}" font-size="12" font-family="Arial" font-weight="bold" fill="#111">${escapeHtml(r.label)}</text>`;
   });
@@ -566,6 +568,9 @@ function instalarBotaoEnviar() {
   }
 }
 
+// ==============================================================
+// SOLUÇÃO FINAL: PROPORÇÃO 1:1 COM PAGINAÇÃO E RODAPÉS AUTOMÁTICOS
+// ==============================================================
 function finalizarEEnviar() {
   const result = calcularEExibir();
   if(result) preencherRelatorioSRS2(result);
@@ -588,22 +593,56 @@ function finalizarEEnviar() {
 
   const elemento = document.getElementById("report");
   
-  // O GRANDE TRUQUE DO ZOOM OUT (Aumentado para 1500px):
-  // Agora a câmara vai fotografar uma tela enorme, o que obriga o PDF a encolher ainda mais as letras!
-  elemento.style.cssText = "display: block !important; margin: 0 auto !important; padding: 60px 80px !important; background: #fff !important; width: 1500px !important; box-sizing: border-box !important;";
-  
-  // Limpa restrições antigas do CSS
-  const repPage = elemento.querySelector('.rep-page');
-  if(repPage) {
-    repPage.style.cssText = "width: 100% !important; min-height: auto !important; padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;";
-  }
+  // TRUQUE 1: OBRIGAMOS O ELEMENTO A TER EXATOS 794px (O TAMANHO UNIVERSAL DO A4 NA WEB)
+  elemento.style.cssText = "display: block !important; margin: 0 !important; background: #fff !important; width: 794px !important; padding: 0 !important; text-align: left;";
 
   const estiloCores = document.createElement('style');
   estiloCores.innerHTML = `
-    #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #report .rep-page {
+      width: 794px !important;
+      margin: 0 !important;
+      padding: 30px 40px !important; /* Espaço nas margens laterais */
+      box-sizing: border-box !important;
+    }
+
+    /* TRUQUE 2: PROTEÇÃO CONTRA CORTES NAS TABELAS E GRÁFICOS (QUEBRAS DE PÁGINA) */
+    .rep-scale { page-break-inside: avoid !important; margin-bottom: 25px !important; }
+    .rep-break { page-break-before: always !important; }
+    tr, .rep-block-title { page-break-inside: avoid !important; }
+
+    /* TRUQUE 3: TIPOGRAFIA EXATAMENTE IGUAL À DO PDF QUE ENVIOU */
+    #report .rep-h1 { font-size: 20px !important; color: #333 !important; font-weight: bold !important; margin-bottom: 5px !important; }
+    #report .rep-h2 { font-size: 16px !important; color: #111 !important; font-weight: bold !important; }
+    #report .rep-patient { font-size: 13px !important; margin-top: 15px !important; line-height: 1.4 !important; }
+    
+    #report .rep-block-title {
+      font-size: 14px !important;
+      font-weight: bold !important;
+      background-color: #e8fbfa !important;
+      color: #111 !important;
+      padding: 8px 12px !important;
+      margin-bottom: 15px !important;
+      text-transform: uppercase !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    #report .rep-table { width: 100% !important; border-collapse: collapse !important; margin-top: 5px !important; }
+    #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; font-size: 12px !important; font-weight: bold !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #report .rep-table td { font-size: 12px !important; }
+    #report .rep-table th, #report .rep-table td { border: 1px solid #d9d9d9 !important; padding: 7px 10px !important; }
+
+    #report .rep-mini-table { width: 340px !important; font-size: 11px !important; border-collapse: collapse !important; }
+    #report .rep-mini-table td { padding: 5px !important; border-bottom: 1px solid #f0f0f0 !important; }
     #report .rep-mini-table tr { background-color: #f9fbfb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #report .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
-    #report .rep-block-title { background-color: #e8fbfa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    #report .rep-scale-desc { font-size: 11.5px !important; line-height: 1.5 !important; color: #333 !important; text-align: justify !important; margin-top: 10px !important; }
+    #report .rep-text { font-size: 12px !important; line-height: 1.6 !important; text-align: justify !important; color: #333 !important; }
+    #report svg text { font-size: 11.5px !important; }
+
+    /* Ocultamos o rodapé do HTML para podermos desenhá-lo nós mesmos no PDF com precisão milimétrica */
+    .rep-foot { display: none !important; } 
   `;
   document.head.appendChild(estiloCores);
 
@@ -611,20 +650,33 @@ function finalizarEEnviar() {
 
   setTimeout(() => {
     const opt = {
-      margin: [15, 0, 15, 0], // Margem no topo e no fundo do PDF
-      filename: 'resultado.pdf',
-      image: { type: 'jpeg', quality: 1 },
-      html2canvas: { 
+      margin:       [10, 0, 15, 0], // Margem vital para as quebras de página e para o nosso rodapé caber no fundo
+      filename:     'resultado.pdf',
+      image:        { type: 'jpeg', quality: 1 },
+      html2canvas:  { 
         scale: 2, 
         useCORS: true, 
-        scrollX: 0, 
-        scrollY: 0,
-        windowWidth: 1500 // Sincronizado com a largura do relatório para forçar o encolhimento
+        windowWidth: 794, // O truque da escala real 1:1
+        width: 794
       }, 
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      // O TRUQUE DE PAGINAÇÃO: Impede que os gráficos e as tabelas sejam cortados ao meio
+      pagebreak:    { mode: ['css', 'legacy'], avoid: ['.rep-scale', 'tr', '.rep-block-title'] } 
     };
 
-    html2pdf().set(opt).from(elemento).outputPdf('datauristring').then(function(pdfBase64) {
+    // TRUQUE 4: INJETAR OS RODAPÉS NATIVOS EM CADA PÁGINA (O SEGREDO DO "Página 1", "Página 2"...)
+    html2pdf().set(opt).from(elemento).toPdf().get('pdf').then(function (pdf) {
+      const totalPages = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(9);
+        pdf.setTextColor(100);
+        // Desenha "Equilibrium..." à esquerda
+        pdf.text('Equilibrium • Correção automatizada', 12, pdf.internal.pageSize.getHeight() - 8);
+        // Desenha a numeração das páginas à direita
+        pdf.text('Página ' + i, pdf.internal.pageSize.getWidth() - 20, pdf.internal.pageSize.getHeight() - 8);
+      }
+    }).outputPdf('datauristring').then(function(pdfBase64) {
       
       const base64Limpo = pdfBase64.split(',')[1];
       const inputPaciente = document.getElementById("paciente");
