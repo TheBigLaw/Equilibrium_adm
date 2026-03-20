@@ -334,10 +334,9 @@ function countMissingByScale(form){
   return missingByScale;
 }
 
-// AJUSTE: Gráfico com a margem esquerda estendida para a palavra "Dado" não ser cortada
 function svgProfileChart(rows){
   const W = 920, H = 450;
-  const left = 130, right = 280, top = 40, bottom = 40; // 'left' aumentado para proteger o texto
+  const left = 130, right = 280, top = 40, bottom = 40; 
   const plotW = W - left - right;
   const plotH = H - top - bottom;
   const tMin = 20, tMax = 80;
@@ -373,7 +372,6 @@ function svgProfileChart(rows){
     svg += `<text x="${x}" y="${top-10}" text-anchor="middle" font-size="12" font-family="Arial" fill="#111">${label}</text>`;
   }
 
-  // Posição de "Dados brutos" e "Normas" afinada matematicamente para nunca ser cortada
   svg += `<text x="${25}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 25, ${top-10})">Dados brutos</text>`;
   svg += `<text x="${50}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 50, ${top-10})">Normas</text>`;
 
@@ -569,7 +567,7 @@ function instalarBotaoEnviar() {
 }
 
 // ==============================================================
-// SOLUÇÃO FINAL: PROPORÇÃO 1:1 COM PAGINAÇÃO E RODAPÉS AUTOMÁTICOS
+// SOLUÇÃO FINAL: PROPORÇÃO 1:1 COM ALINHAMENTO ABSOLUTO
 // ==============================================================
 function finalizarEEnviar() {
   const result = calcularEExibir();
@@ -593,24 +591,23 @@ function finalizarEEnviar() {
 
   const elemento = document.getElementById("report");
   
-  // TRUQUE 1: OBRIGAMOS O ELEMENTO A TER EXATOS 794px (O TAMANHO UNIVERSAL DO A4 NA WEB)
-  elemento.style.cssText = "display: block !important; margin: 0 !important; background: #fff !important; width: 794px !important; padding: 0 !important; text-align: left;";
+  // TRUQUE 1 MÁGICO: "position: absolute; top: 0; left: 0;"
+  // Isto impede fisicamente a câmara de cortar a margem esquerda!
+  elemento.style.cssText = "display: block !important; position: absolute !important; top: 0 !important; left: 0 !important; margin: 0 !important; background: #fff !important; width: 794px !important; padding: 0 !important; text-align: left; z-index: 99999;";
 
   const estiloCores = document.createElement('style');
   estiloCores.innerHTML = `
     #report .rep-page {
       width: 794px !important;
       margin: 0 !important;
-      padding: 30px 40px !important; /* Espaço nas margens laterais */
+      padding: 30px 40px !important;
       box-sizing: border-box !important;
     }
 
-    /* TRUQUE 2: PROTEÇÃO CONTRA CORTES NAS TABELAS E GRÁFICOS (QUEBRAS DE PÁGINA) */
     .rep-scale { page-break-inside: avoid !important; margin-bottom: 25px !important; }
     .rep-break { page-break-before: always !important; }
     tr, .rep-block-title { page-break-inside: avoid !important; }
 
-    /* TRUQUE 3: TIPOGRAFIA EXATAMENTE IGUAL À DO PDF QUE ENVIOU */
     #report .rep-h1 { font-size: 20px !important; color: #333 !important; font-weight: bold !important; margin-bottom: 5px !important; }
     #report .rep-h2 { font-size: 16px !important; color: #111 !important; font-weight: bold !important; }
     #report .rep-patient { font-size: 13px !important; margin-top: 15px !important; line-height: 1.4 !important; }
@@ -641,7 +638,6 @@ function finalizarEEnviar() {
     #report .rep-text { font-size: 12px !important; line-height: 1.6 !important; text-align: justify !important; color: #333 !important; }
     #report svg text { font-size: 11.5px !important; }
 
-    /* Ocultamos o rodapé do HTML para podermos desenhá-lo nós mesmos no PDF com precisão milimétrica */
     .rep-foot { display: none !important; } 
   `;
   document.head.appendChild(estiloCores);
@@ -650,30 +646,29 @@ function finalizarEEnviar() {
 
   setTimeout(() => {
     const opt = {
-      margin:       [10, 0, 15, 0], // Margem vital para as quebras de página e para o nosso rodapé caber no fundo
+      margin:       [10, 0, 15, 0], 
       filename:     'resultado.pdf',
       image:        { type: 'jpeg', quality: 1 },
       html2canvas:  { 
         scale: 2, 
         useCORS: true, 
-        windowWidth: 794, // O truque da escala real 1:1
-        width: 794
+        windowWidth: 794,
+        scrollX: 0, 
+        scrollY: 0,
+        x: 0,           // TRUQUE 2: Força a câmara a iniciar no píxel X:0
+        y: 0            // Força a câmara a iniciar no píxel Y:0
       }, 
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      // O TRUQUE DE PAGINAÇÃO: Impede que os gráficos e as tabelas sejam cortados ao meio
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['.rep-scale', 'tr', '.rep-block-title'] } 
     };
 
-    // TRUQUE 4: INJETAR OS RODAPÉS NATIVOS EM CADA PÁGINA (O SEGREDO DO "Página 1", "Página 2"...)
     html2pdf().set(opt).from(elemento).toPdf().get('pdf').then(function (pdf) {
       const totalPages = pdf.internal.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
         pdf.setFontSize(9);
         pdf.setTextColor(100);
-        // Desenha "Equilibrium..." à esquerda
         pdf.text('Equilibrium • Correção automatizada', 12, pdf.internal.pageSize.getHeight() - 8);
-        // Desenha a numeração das páginas à direita
         pdf.text('Página ' + i, pdf.internal.pageSize.getWidth() - 20, pdf.internal.pageSize.getHeight() - 8);
       }
     }).outputPdf('datauristring').then(function(pdfBase64) {
