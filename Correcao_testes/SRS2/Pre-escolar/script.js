@@ -12,7 +12,7 @@ const $ = (sel) => document.querySelector(sel);
 
 function setSubtitle(msg){
   const sub = $("#subtitle");
-  if(sub) sub.textContent = msg; // TRAVÃO DE SEGURANÇA
+  if(sub) sub.textContent = msg; 
 }
 
 async function carregarRegras(){
@@ -335,12 +335,11 @@ function countMissingByScale(form){
 }
 
 // ==========================================
-// GRÁFICO SVG COM "TETO" AUMENTADO PARA NÃO CORTAR TEXTO
+// SVG TOTALMENTE REDESENHADO PARA CABER NO A4 SEM CORTAR
 // ==========================================
 function svgProfileChart(rows){
-  const W = 920, H = 480; // Altura aumentada de 450 para 480
-  // Topo (top) aumentado de 40 para 70 para acomodar o texto rodado
-  const left = 110, right = 280, top = 70, bottom = 40; 
+  const W = 710, H = 360; // Largura reduzida matematicamente para não ultrapassar a folha
+  const left = 60, right = 220, top = 60, bottom = 30;
   const plotW = W - left - right;
   const plotH = H - top - bottom;
   const tMin = 20, tMax = 80;
@@ -373,12 +372,11 @@ function svgProfileChart(rows){
     if(t===50) label = "m 50";
     if(t===60) label = "+S 60";
     if(t===80) label = "max 80";
-    svg += `<text x="${x}" y="${top-10}" text-anchor="middle" font-size="12" font-family="Arial" fill="#111">${label}</text>`;
+    svg += `<text x="${x}" y="${top-8}" text-anchor="middle" font-size="10" font-family="Arial" fill="#111">${label}</text>`;
   }
 
-  // Texto "Dados" e "Norma" afinados
-  svg += `<text x="${20}" y="${top-10}" font-size="16" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 20, ${top-10})">Dados</text>`;
-  svg += `<text x="${55}" y="${top-10}" font-size="16" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 55, ${top-10})">Norma</text>`;
+  svg += `<text x="${15}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 15, ${top-10})">Dados</text>`;
+  svg += `<text x="${40}" y="${top-10}" font-size="12" font-family="Arial" font-weight="bold" fill="#111" transform="rotate(-90, 40, ${top-10})">Norma</text>`;
 
   rows.forEach((r,i) => {
     svg += `<line x1="${xOfT(20)}" y1="${yOfI(i)}" x2="${xOfT(80)}" y2="${yOfI(i)}" stroke="#fff" stroke-width="1.5" />`;
@@ -395,10 +393,10 @@ function svgProfileChart(rows){
   rows.forEach((r,i) => {
     const y = yOfI(i);
     const x = xOfT(r.t ?? 50);
-    svg += `<text x="${15}" y="${y+4}" font-size="12" font-family="Arial" fill="#111">${r.bruto ?? "—"}</text>`;
-    svg += `<text x="${45}" y="${y+4}" font-size="12" font-family="Arial" fill="#111">${r.t ?? "—"}</text>`;
-    svg += `<circle cx="${x}" cy="${y}" r="6" fill="#e3001b"/>`;
-    svg += `<text x="${xOfT(80) + 15}" y="${y+4}" font-size="12" font-family="Arial" font-weight="bold" fill="#111">${escapeHtml(r.label)}</text>`;
+    svg += `<text x="${10}" y="${y+3}" font-size="10" font-family="Arial" fill="#111">${r.bruto ?? "—"}</text>`;
+    svg += `<text x="${35}" y="${y+3}" font-size="10" font-family="Arial" fill="#111">${r.t ?? "—"}</text>`;
+    svg += `<circle cx="${x}" cy="${y}" r="5" fill="#e3001b"/>`;
+    svg += `<text x="${xOfT(80) + 12}" y="${y+3}" font-size="10" font-family="Arial" font-weight="bold" fill="#111">${escapeHtml(r.label)}</text>`;
   });
 
   svg += `</svg>`;
@@ -406,11 +404,11 @@ function svgProfileChart(rows){
 }
 
 function svgBell(t){
-  const W=500, H=160;
+  const W=400, H=140; // Também reduzido para combinar
   const tMin=20, tMax=80;
   const xPad=20;
   const plotW = W - xPad*2;
-  const baseY = H - 30;
+  const baseY = H - 25;
 
   function xOfT(val){
     const tt = clamp(Number(val), tMin, tMax);
@@ -421,7 +419,7 @@ function svgBell(t){
   for(let i=0; i<=80; i++){
     const u = i/80;
     const x = xPad + u*plotW;
-    const y = baseY - Math.exp(-Math.pow((u-0.5)/0.22, 2)) * 110;
+    const y = baseY - Math.exp(-Math.pow((u-0.5)/0.22, 2)) * 90;
     pts.push([x,y]);
   }
   const d = pts.map((p,i)=> (i===0?`M ${p[0]} ${p[1]}`:`L ${p[0]} ${p[1]}`)).join(" ") + ` L ${xPad+plotW} ${baseY} L ${xPad} ${baseY} Z`;
@@ -433,15 +431,15 @@ function svgBell(t){
     <rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>
     <path d="${d}" fill="#e8fbfa" />
     
-    <rect x="${xOfT(40)}" y="${baseY-110}" width="${xOfT(60)-xOfT(40)}" height="110" fill="#d0f0ee" opacity="0.4"/>
+    <rect x="${xOfT(40)}" y="${baseY-90}" width="${xOfT(60)-xOfT(40)}" height="90" fill="#d0f0ee" opacity="0.4"/>
 
-    <line x1="${xt}" y1="${baseY-110}" x2="${xt}" y2="${baseY}" stroke="#e3001b" stroke-width="2.5"/>
-    <circle cx="${xt}" cy="${baseY-110}" r="5" fill="#e3001b"/>
+    <line x1="${xt}" y1="${baseY-90}" x2="${xt}" y2="${baseY}" stroke="#e3001b" stroke-width="2.5"/>
+    <circle cx="${xt}" cy="${baseY-90}" r="4" fill="#e3001b"/>
 
     <line x1="${xPad}" y1="${baseY}" x2="${xPad+plotW}" y2="${baseY}" stroke="#111" stroke-width="1.5"/>
 
     ${[20,30,40,50,60,70,80].map(v => `
-      <text x="${xOfT(v)}" y="${baseY+20}" text-anchor="middle" font-size="14" font-family="Arial" fill="#111">${v}</text>
+      <text x="${xOfT(v)}" y="${baseY+15}" text-anchor="middle" font-size="11" font-family="Arial" fill="#111">${v}</text>
     `).join("")}
   </svg>`;
 }
@@ -533,17 +531,17 @@ function preencherRelatorioSRS2(result){
       sec.className = "rep-scale";
 
       sec.innerHTML = `
-        <div style="font-size: 14pt; font-weight: bold; margin-bottom: 5px; color:#111;">${escapeHtml(r.label)}</div>
-        <div style="font-size: 10pt; color: #555; margin-bottom: 15px; text-transform: uppercase;">${formLabelUpper} • ESCORE T (50+10z)</div>
+        <div style="font-size: 11pt; font-weight: bold; margin-bottom: 4px; color:#111;">${escapeHtml(r.label)}</div>
+        <div style="font-size: 8pt; color: #555; margin-bottom: 12px; text-transform: uppercase;">${formLabelUpper} • ESCORE T (50+10z)</div>
 
         <div class="rep-scale-grid" style="display:flex; justify-content: space-between; align-items: flex-end;">
           <div style="width: 45%;">
             <table class="rep-mini-table" style="width:100%; border-collapse: collapse;">
               <tbody>
-                <tr style="background:#f4f9f9;"><td style="padding:8px;">Pontuação bruta</td><td style="text-align:right; padding:8px;">${r.bruto ?? "—"}</td></tr>
-                <tr><td style="padding:8px;">Valor da norma</td><td style="text-align:right; padding:8px;">${r.t ?? "—"}</td></tr>
-                <tr style="background:#f4f9f9;"><td style="padding:8px;">Respostas faltantes (missing)</td><td style="text-align:right; padding:8px;">${missing}</td></tr>
-                <tr><td style="padding:8px;">Intervalo de confiança</td><td style="text-align:right; padding:8px;">[${ciA} - ${ciB}]</td></tr>
+                <tr style="background:#f4f9f9;"><td style="padding:6px;">Pontuação bruta</td><td style="text-align:right; padding:6px;">${r.bruto ?? "—"}</td></tr>
+                <tr><td style="padding:6px;">Valor da norma</td><td style="text-align:right; padding:6px;">${r.t ?? "—"}</td></tr>
+                <tr style="background:#f4f9f9;"><td style="padding:6px;">Respostas faltantes (missing)</td><td style="text-align:right; padding:6px;">${missing}</td></tr>
+                <tr><td style="padding:6px;">Intervalo de confiança</td><td style="text-align:right; padding:6px;">[${ciA} - ${ciB}]</td></tr>
               </tbody>
             </table>
           </div>
@@ -551,7 +549,7 @@ function preencherRelatorioSRS2(result){
             ${svgBell(t)}
           </div>
         </div>
-        <div class="rep-scale-desc" style="font-size: 11pt; line-height: 1.5; color: #333; text-align: justify;">${escapeHtml(desc)}</div>
+        <div class="rep-scale-desc" style="font-size: 9pt; line-height: 1.4; color: #333; text-align: justify;">${escapeHtml(desc)}</div>
       `;
 
       container.appendChild(sec);
@@ -571,6 +569,9 @@ function instalarBotaoEnviar() {
   }
 }
 
+// ==============================================================
+// SOLUÇÃO FINAL: O TEXTO E O GRÁFICO ENCOLHEM NATURALMENTE
+// ==============================================================
 function finalizarEEnviar() {
   const result = calcularEExibir();
   if(result) preencherRelatorioSRS2(result);
@@ -593,32 +594,44 @@ function finalizarEEnviar() {
 
   const elemento = document.getElementById("report");
   
-  // O TRUQUE DE ESCALA CORRETO: 
-  // Passamos o relatório para 1000px. Isso força o pdf a diminuir a escala 
-  // para caber na folha A4 (deixando tudo mais pequeno e bonito!)
-  elemento.style.cssText = "display: block !important; margin: 0 !important; background: #fff !important; width: 1000px !important; padding: 0 !important;";
-  
+  // O GRANDE TRUQUE: Deixa o elemento alinhado à esquerda com 794px, sem o margin: 0 auto causar cortes!
+  elemento.style.cssText = "display: block !important; margin: 0 !important; padding: 0 !important; background: #fff !important; width: 794px !important; text-align: left !important;";
+  document.body.style.cssText = "min-width: 800px !important; margin: 0; padding: 0;";
+
   const estiloCores = document.createElement('style');
   estiloCores.innerHTML = `
     #report .rep-page { 
-      width: 1000px !important; 
-      min-height: 1414px !important; /* Proporção matemática do A4 */
+      width: 794px !important; 
+      min-height: 1123px !important; 
       margin: 0 !important; 
-      padding: 50px 70px !important; /* Margens brancas bonitas */
+      padding: 30px 40px !important; 
       box-sizing: border-box !important; 
     }
     
-    /* Proteção de Quebras de Página */
-    .rep-scale { page-break-inside: avoid !important; margin-bottom: 25px !important; }
-    tr, .rep-block-title { page-break-inside: avoid !important; }
+    /* ENCOLHEMOS AS FONTES DIRETAMENTE AQUI */
+    #report .rep-h1 { font-size: 15px !important; margin-bottom: 5px !important; }
+    #report .rep-h2 { font-size: 13px !important; margin-top: 10px !important; margin-bottom: 5px !important; }
+    #report .rep-patient { font-size: 10px !important; line-height: 1.3 !important; }
+    
+    #report .rep-block-title { font-size: 11px !important; padding: 4px 8px !important; margin-bottom: 10px !important; }
+    #report .rep-text { font-size: 10px !important; line-height: 1.4 !important; }
+    
+    #report .rep-table { margin-top: 5px !important; }
+    #report .rep-table th, #report .rep-table td { font-size: 10px !important; padding: 5px 8px !important; }
+    
+    #report .rep-mini-table { font-size: 10px !important; width: 300px !important; }
+    #report .rep-mini-table td { padding: 4px 6px !important; }
+    
+    /* PREVINE QUE AS TABELAS SEJAM CORTADAS A MEIO */
+    .rep-scale, #tblResultados { page-break-inside: avoid !important; }
+    .rep-break { page-break-before: always !important; }
 
-    /* Força as cores de impressão das mini-tabelas (Sem estragar a tabela principal!) */
+    #report .rep-table th { background-color: #e8fbfa !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #report .rep-mini-table tr { background-color: #f9fbfb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #report .rep-mini-table tr:nth-child(even) { background-color: #fff !important; }
     #report .rep-block-title { background-color: #e8fbfa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     
-    /* A cor roxa do cabeçalho da sua tabela principal */
-    #report .rep-table th { color: #6d28d9 !important; background-color: transparent !important; }
+    .rep-foot { display: none !important; } 
   `;
   document.head.appendChild(estiloCores);
 
@@ -626,7 +639,8 @@ function finalizarEEnviar() {
 
   setTimeout(() => {
     const opt = {
-      margin: [15, 0, 15, 0], // Margem top e bottom no PDF
+      // TRUQUE DO RODAPÉ: Aumentámos a margem inferior para 20mm para o rodapé não esmagar a tabela!
+      margin: [15, 10, 20, 10], 
       filename: 'resultado.pdf',
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
@@ -634,16 +648,12 @@ function finalizarEEnviar() {
         useCORS: true, 
         scrollX: 0, 
         scrollY: 0,
-        x: 0, // Garante que a foto começa exatamente colada à esquerda (Adeus cortes!)
-        y: 0,
-        windowWidth: 1000, // Sincronizado com os 1000px do relatório para criar a escala perfeita
-        width: 1000
+        windowWidth: 800 // Sincronizado para garantir que NADA é cortado
       }, 
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] }
+      pagebreak: { mode: ['css', 'legacy'], avoid: ['.rep-scale', '#tblResultados', '.rep-block-title'] }
     };
 
-    // Injeta o cabeçalho e rodapé bonitos de novo
     html2pdf().set(opt).from(elemento).toPdf().get('pdf').then(function (pdf) {
       const totalPages = pdf.internal.getNumberOfPages();
       for (let i = 1; i <= totalPages; i++) {
